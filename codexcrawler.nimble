@@ -20,7 +20,7 @@ requires "stew#head"
 requires "stint"
 requires "https://github.com/codex-storage/nim-datastore >= 0.1.0 & < 0.2.0"
 requires "questionable"
-requires "https://github.com/codex-storage/nim-codex-dht"
+requires "https://github.com/codex-storage/nim-codex-dht#4bd3a39e0030f8ee269ef217344b6b59ec2be6dc" # 7 Jan 2024 - Support for Nim 2.0.14
 
 task test, "Run tests":
   exec "nimble install -d -y"
