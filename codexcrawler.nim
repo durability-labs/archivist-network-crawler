@@ -3,14 +3,15 @@ import pkg/chronos
 
 import ./codexcrawler/main
 import ./codexcrawler/config
+import ./codexcrawler/metrics
 
 when defined(posix):
   import system/ansi_c
 
 type
   ApplicationStatus {.pure.} = enum
-    Stopped,
-    Stopping,
+    Stopped
+    Stopping
     Running
 
   Application = ref object
@@ -20,8 +21,11 @@ proc run(app: Application) =
   let config = parseConfig()
   info "Loaded configuration", config
 
-  app.status = ApplicationStatus.Running
+  setupMetrics(config.metricsAddress, config.metricsPort)
+  info "Metrics endpoint initialized"
 
+  info "Starting application"
+  app.status = ApplicationStatus.Running
   waitFor startApplication()
 
   while app.status == ApplicationStatus.Running:
@@ -30,7 +34,7 @@ proc run(app: Application) =
     except Exception as exc:
       error "Unhandled exception", msg = exc.msg
       quit QuitFailure
-  notice "Done"
+  notice "Application closed"
 
 when isMainModule:
   let app = Application()
@@ -46,7 +50,8 @@ when isMainModule:
       # workaround for https://github.com/nim-lang/Nim/issues/4057
       try:
         setupForeignThreadGc()
-      except Exception as exc: raiseAssert exc.msg
+      except Exception as exc:
+        raiseAssert exc.msg
     notice "Shutting down after having received SIGINT"
     onStopSignal()
 

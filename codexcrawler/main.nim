@@ -11,8 +11,7 @@ proc startApplication*() {.async.} =
       await sleepAsync(1000)
 
   asyncSpawn aaa()
-  
+
   await sleepAsync(1000)
 
   notice "b"
-

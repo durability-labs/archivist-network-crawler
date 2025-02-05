@@ -18,6 +18,7 @@ Metrics are published from a scrape target.
 # Usage
 
 ```sh
+nimble format
 nimble build
 nimble test
 nimble run

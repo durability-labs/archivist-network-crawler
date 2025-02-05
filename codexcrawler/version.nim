@@ -20,5 +20,5 @@ const
   nimBanner* = getNimBanner()
 
   crawlerFullVersion* =
-    "CodexNetworkCrawler version:  " & crawlerVersion & "\p" & "CodexNetworkCrawler revision: " & crawlerRevision & "\p" &
-    nimBanner
+    "CodexNetworkCrawler version:  " & crawlerVersion & "\p" &
+    "CodexNetworkCrawler revision: " & crawlerRevision & "\p" & nimBanner

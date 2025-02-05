@@ -1,7 +1,8 @@
 import std/net
 import ./version
 
-let doc = """
+let doc =
+  """
 Codex Network Crawler. Generates network metrics.
 
 Usage:
@@ -18,21 +19,17 @@ Options:
 import strutils
 import docopt
 
-type
-  CrawlerConfig* = ref object
-    logLevel*: string
-    metricsAddress*: IpAddress
-    metricsPort*: Port
-    dataDir*: string
-    discPort*: Port
+type CrawlerConfig* = ref object
+  logLevel*: string
+  metricsAddress*: IpAddress
+  metricsPort*: Port
+  dataDir*: string
+  discPort*: Port
 
 proc `$`*(config: CrawlerConfig): string =
-  "CrawlerConfig:" &
-    " logLevel=" & config.logLevel &
-    " metricsAddress=" & $config.metricsAddress &
-    " metricsPort=" & $config.metricsPort &
-    " dataDir=" & config.dataDir &
-    " discPort=" & $config.discPort
+  "CrawlerConfig:" & " logLevel=" & config.logLevel & " metricsAddress=" &
+    $config.metricsAddress & " metricsPort=" & $config.metricsPort & " dataDir=" &
+    config.dataDir & " discPort=" & $config.discPort
 
 proc parseConfig*(): CrawlerConfig =
   let args = docopt(doc, version = crawlerFullVersion)
