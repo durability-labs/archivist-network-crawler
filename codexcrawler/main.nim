@@ -35,10 +35,7 @@ proc startApplication*(config: CrawlerConfig): Future[?!void] {.async.} =
     while true:
       trace "a"
       await sleepAsync(1000)
-      discard await exampleList.add(Entry(
-        id: $i,
-        value: "str!"
-      ))
+      discard await exampleList.add(Entry(id: $i, value: "str!"))
       inc i
 
   asyncSpawn aaa()

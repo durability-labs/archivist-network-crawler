@@ -9,8 +9,7 @@ proc updateLogLevel*(logLevel: string) =
   notice "Updating logLevel", logLevel
   let directives = logLevel.split(";")
   try:
-    setLogLevel(LogLevel.TRACE)
-      #parseEnum[LogLevel](directives[0].toUpperAscii))
+    setLogLevel(LogLevel.TRACE) #parseEnum[LogLevel](directives[0].toUpperAscii))
   except ValueError:
     notice "valueerror logLevel", logLevel
     raise (ref ValueError)(
