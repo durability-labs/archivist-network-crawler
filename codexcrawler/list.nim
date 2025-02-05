@@ -3,9 +3,12 @@ import pkg/chronicles
 import pkg/metrics
 import pkg/datastore
 import pkg/datastore/typedds
+import pkg/stew/byteutils
+import pkg/stew/endians2
 import pkg/questionable
 import pkg/questionable/results
 
+import std/strutils
 import std/os
 
 import ./nodeentry
@@ -21,6 +24,20 @@ type
     store: TypedDatastore
     items: seq[NodeEntry]
     onMetric: OnUpdateMetric
+
+proc encode(s: NodeEntry): seq[byte] =
+  (s.id & ";" & s.value).toBytes()
+
+proc decode(T: type NodeEntry, bytes: seq[byte]): ?!T =
+  let s = string.fromBytes(bytes)
+  if s.len == 0:
+    return success(NodeEntry(id: "", value: ""))
+
+  let tokens = s.split(";")
+  if tokens.len != 2:
+    return failure("expected 2 tokens")
+
+  success(NodeEntry(id: tokens[0], value: tokens[1]))
 
 proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
   without itemKey =? Key.init(this.name / item.id), err:
