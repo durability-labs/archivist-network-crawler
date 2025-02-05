@@ -44,8 +44,10 @@ proc initializeLists(app: Application): Future[?!void] {.async.} =
   # The use of global state in nim-metrics is not pleasant.
   proc onTodoMetric(value: int64) =
     todoNodesGauge.set(value)
+
   proc onOkMetric(value: int64) =
     okNodesGauge.set(value)
+
   proc onNokMetric(value: int64) =
     nokNodesGauge.set(value)
 
