@@ -1,12 +1,18 @@
+import std/strutils
+import std/typetraits
+
 import pkg/chronicles
 import pkg/chronicles/helpers
 import pkg/chronicles/topics_registry
 
-proc updateLogLevel*(logLevel: string) {.upraises: [ValueError].} =
+proc updateLogLevel*(logLevel: string) =
+  notice "Updating logLevel", logLevel
   let directives = logLevel.split(";")
   try:
-    setLogLevel(parseEnum[LogLevel](directives[0].toUpperAscii))
+    setLogLevel(LogLevel.TRACE)
+      #parseEnum[LogLevel](directives[0].toUpperAscii))
   except ValueError:
+    notice "valueerror logLevel", logLevel
     raise (ref ValueError)(
       msg:
         "Please specify one of: trace, debug, " & "info, notice, warn, error or fatal"

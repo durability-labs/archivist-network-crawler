@@ -14,3 +14,4 @@ NimBinaries
 *.dSYM
 .vscode/*
 *.exe
+crawler_data
