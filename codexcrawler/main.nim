@@ -4,7 +4,7 @@ import pkg/chronos
 logScope:
   topics = "main"
 
-proc runApplication*() {.async.} =
+proc startApplication*() {.async.} =
   proc aaa() {.async.} =
     while true:
       notice "a"

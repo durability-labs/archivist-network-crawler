@@ -2,6 +2,8 @@ import pkg/chronicles
 import pkg/chronos
 
 import ./codexcrawler/main
+import ./codexcrawler/config
+
 when defined(posix):
   import system/ansi_c
 
@@ -15,9 +17,12 @@ type
     status: ApplicationStatus
 
 proc run(app: Application) =
+  let config = parseConfig()
+  info "Loaded configuration", config
+
   app.status = ApplicationStatus.Running
 
-  waitFor runApplication()
+  waitFor startApplication()
 
   while app.status == ApplicationStatus.Running:
     try:
