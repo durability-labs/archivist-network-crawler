@@ -10,7 +10,7 @@ Usage:
 
 Options:
   --logLevel=<l>          Sets log level [default: TRACE]
-  --metricsAddress=<ip>   Listen address of the metrics server [default: 127.0.0.1]
+  --metricsAddress=<ip>   Listen address of the metrics server [default: 0.0.0.0]
   --metricsPort=<p>       Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>         Directory for storing data [default: crawler_data]
   --discoveryPort=<p>     Port used for DHT [default: 8090]
