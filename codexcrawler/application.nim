@@ -72,7 +72,7 @@ proc initializeLists(app: Application): Future[?!void] {.async.} =
 
   return success()
 
-proc initializeDht(app: Application): ?!void =
+proc initializeDht(app: Application): Future[?!void] {.async.} =
   without dhtStore =? app.createDatastore("dht"), err:
     return failure(err)
   let keyPath = app.config.dataDir / "privatekey"
@@ -86,8 +86,10 @@ proc initializeDht(app: Application): ?!void =
     bindPort = app.config.discPort,
     announceAddrs = announceAddresses,
     bootstrapNodes = app.config.bootNodes,
-    store = dhtStore
+    store = dhtStore,
   )
+
+  await app.dht.start()
   return success()
 
 proc initializeApp(app: Application): Future[?!void] {.async.} =
@@ -95,7 +97,7 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
     error "Failed to initialize lists", err = err.msg
     return failure(err)
 
-  if err =? app.initializeDht().errorOption:
+  if err =? (await app.initializeDht()).errorOption:
     error "Failed to initialize DHT", err = err.msg
     return failure(err)
 
@@ -103,6 +105,7 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
 
 proc stop*(app: Application) =
   app.status = ApplicationStatus.Stopping
+  waitFor app.dht.stop()
 
 proc run*(app: Application) =
   app.config = parseConfig()

@@ -44,8 +44,7 @@ proc checkSecureFile*(path: string): IoResult[bool] =
   else:
     ok (?getPermissionsSet(path) == {UserRead, UserWrite})
 
-type
-  KeyError* = object of CatchableError
+type KeyError* = object of CatchableError
 
 proc setupKey*(path: string): ?!PrivateKey =
   if not path.fileAccessible({AccessFlags.Find}):
@@ -60,9 +59,7 @@ proc setupKey*(path: string): ?!PrivateKey =
   info "Found a network private key"
   if not ?checkSecureFile(path).mapFailure(KeyError):
     warn "The network private key file is not safe, aborting"
-    return failure newException(
-      KeyError, "The network private key file is not safe"
-    )
+    return failure newException(KeyError, "The network private key file is not safe")
 
   let kb = ?path.readAllBytes().mapFailure(KeyError)
   return PrivateKey.init(kb).mapFailure(KeyError)

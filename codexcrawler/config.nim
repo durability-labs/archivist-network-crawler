@@ -54,7 +54,7 @@ proc getBootNodeStrings(input: string): seq[string] =
     return getDefaultTestnetBootNodes()
   return input.split(";")
 
-proc stringToSpr(uri: string): SignedPeerRecord = 
+proc stringToSpr(uri: string): SignedPeerRecord =
   var res: SignedPeerRecord
   try:
     if not res.fromURI(uri):

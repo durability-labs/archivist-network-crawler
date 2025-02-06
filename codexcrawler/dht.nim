@@ -86,8 +86,7 @@ proc new*(
     bootstrapNodes: openArray[SignedPeerRecord] = [],
     store: Datastore = SQLiteDatastore.new(Memory).expect("Should not fail!"),
 ): Dht =
-  var self =
-    Dht(key: key, peerId: PeerId.init(key).expect("Should construct PeerId"))
+  var self = Dht(key: key, peerId: PeerId.init(key).expect("Should construct PeerId"))
 
   self.updateAnnounceRecord(announceAddrs)
 
