@@ -15,4 +15,3 @@ NimBinaries
 .vscode/*
 *.exe
 crawler_data
-dht

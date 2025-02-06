@@ -1,4 +1,5 @@
 import std/os
+import std/sequtils
 import pkg/chronicles
 import pkg/chronos
 import pkg/questionable
@@ -45,7 +46,7 @@ proc createTypedDatastore(app: Application, path: string): ?!TypedDatastore =
   return success(TypedDatastore.init(store))
 
 proc initializeLists(app: Application): Future[?!void] {.async.} =
-  without store =? app.createTypedDatastore(app.config.dataDir), err:
+  without store =? app.createTypedDatastore(app.config.dataDir / "lists"), err:
     return failure(err)
 
   # We can't extract this into a function because gauges cannot be passed as argument.
@@ -73,13 +74,17 @@ proc initializeLists(app: Application): Future[?!void] {.async.} =
   return success()
 
 proc initializeDht(app: Application): Future[?!void] {.async.} =
-  without dhtStore =? app.createDatastore("dht"), err:
+  without dhtStore =? app.createDatastore(app.config.dataDir / "dht"), err:
     return failure(err)
   let keyPath = app.config.dataDir / "privatekey"
   without privateKey =? setupKey(keyPath), err:
     return failure(err)
 
-  let announceAddresses = newSeq[MultiAddress]()
+  var announceAddresses = newSeq[MultiAddress]()
+  let aaa = MultiAddress.init("/ip4/172.21.64.1/udp/8090").expect("Should init multiaddress")
+  # /ip4/45.82.185.194/udp/8090
+  # /ip4/172.21.64.1/udp/8090
+  announceAddresses.add(aaa)
 
   app.dht = Dht.new(
     privateKey,
@@ -102,6 +107,26 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
     return failure(err)
 
   return success()
+
+proc hackyCrawl(app: Application) {.async.} =
+  info "starting hacky crawl..."
+  await sleepAsync(3000)
+
+  var nodeIds = await app.dht.getRoutingTableNodeIds()
+  trace "starting with routing table nodes", nodes = nodeIds.len
+
+  while app.status == ApplicationStatus.Running:
+    let nodeId = nodeIds[0]
+    nodeIds.delete(0)
+
+    without newNodes =? (await app.dht.getNeighbors(nodeId)), err:
+      error "getneighbors failed", err = err.msg
+      
+    trace "adding new nodes", len = newNodes.len
+    for id in newNodes.mapIt(it.id):
+      nodeIds.add(id)
+    await sleepAsync(1000)
+
 
 proc stop*(app: Application) =
   app.status = ApplicationStatus.Stopping
@@ -127,6 +152,8 @@ proc run*(app: Application) =
     app.status = ApplicationStatus.Stopping
     error "Failed to start application", err = err.msg
     return
+
+  asyncSpawn app.hackyCrawl()
 
   while app.status == ApplicationStatus.Running:
     try:

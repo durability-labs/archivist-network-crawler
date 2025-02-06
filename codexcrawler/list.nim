@@ -8,6 +8,7 @@ import pkg/stew/endians2
 import pkg/questionable
 import pkg/questionable/results
 
+import std/sets
 import std/strutils
 import std/os
 
@@ -22,7 +23,7 @@ type
   List* = ref object
     name: string
     store: TypedDatastore
-    items: seq[NodeEntry]
+    items: HashSet[NodeEntry]
     onMetric: OnUpdateMetric
 
 proc encode(s: NodeEntry): seq[byte] =
@@ -57,18 +58,19 @@ proc load*(this: List): Future[?!void] {.async.} =
     without value =? item.value, err:
       return failure(err)
     if value.id.len > 0:
-      this.items.add(value)
+      this.items.incl(value)
 
+  this.onMetric(this.items.len.int64)
   info "Loaded list", name = this.name, items = this.items.len
   return success()
 
 proc new*(
     _: type List, name: string, store: TypedDatastore, onMetric: OnUpdateMetric
 ): List =
-  List(name: name, store: store, items: newSeq[NodeEntry](), onMetric: onMetric)
+  List(name: name, store: store, onMetric: onMetric)
 
 proc add*(this: List, item: NodeEntry): Future[?!void] {.async.} =
-  this.items.add(item)
+  this.items.incl(item)
   this.onMetric(this.items.len.int64)
 
   if err =? (await this.saveItem(item)).errorOption:

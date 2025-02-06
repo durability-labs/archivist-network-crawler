@@ -34,10 +34,53 @@ type Dht* = ref object
 
 #   readUintBE[256](keccak256.digest(host.toArray).data)
 
+proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
+  let node = d.protocol.getNode(nodeId)
+  if node.isSome():
+    return success(node.get())
+  return failure("Node not found for id: " & $nodeId)
+
+proc hacky*(d: Dht, nodeId: NodeId) {.async.} =
+  let node = await d.protocol.resolve(nodeId)
+  if node.isSome():
+    info "that worked"
+  else:
+    info "that didn't work"
+    
+proc getRoutingTableNodeIds*(d: Dht): Future[seq[NodeId]] {.async.} =
+  var ids = newSeq[NodeId]()
+  for bucket in d.protocol.routingTable.buckets:
+    for node in bucket.nodes:
+      warn "node seen", node = $node.id, seen = $node.seen
+      ids.add(node.id)
+
+      # await d.hacky(node.id)
+      await sleepAsync(1)
+  return ids
+
+proc getDistances(): seq[uint16] =
+  var d = newSeq[uint16]()
+  for i in 0..10:
+    d.add(i.uint16)
+  return d
+
+proc getNeighbors*(d: Dht, target: NodeId): Future[?!seq[Node]] {.async.} =
+  without node =? d.getNode(target), err:
+    return failure(err)
+
+  let distances = getDistances()
+  let response = await d.protocol.findNode(node, distances)
+
+  if response.isOk():
+    let nodes = response.get()
+    if nodes.len > 0:
+      return success(nodes)
+
+  # Both returning 0 nodes and a failure result are treated as failure of getNeighbors
+  return failure("No nodes returned")
+
 proc findPeer*(d: Dht, peerId: PeerId): Future[?PeerRecord] {.async.} =
   trace "protocol.resolve..."
-  ## Find peer using the given Discovery object
-  ##
   let node = await d.protocol.resolve(toNodeId(peerId))
 
   return
@@ -90,15 +133,13 @@ proc new*(
 
   self.updateAnnounceRecord(announceAddrs)
 
-  # --------------------------------------------------------------------------
-  # FIXME disable IP limits temporarily so we can run our workshop. Re-enable
-  #   and figure out proper solution.
+  # This disables IP limits:
   let discoveryConfig = DiscoveryConfig(
     tableIpLimits: TableIpLimits(tableIpLimit: high(uint), bucketIpLimit: high(uint)),
     bitsPerHop: DefaultBitsPerHop,
   )
-  # --------------------------------------------------------------------------
 
+  trace "Creating DHT protocol", ip = $bindIp, port = $bindPort
   self.protocol = newProtocol(
     key,
     bindIp = bindIp,
