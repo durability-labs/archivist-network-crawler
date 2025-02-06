@@ -1,4 +1,8 @@
 import std/net
+import std/sequtils
+import pkg/chronicles
+import pkg/libp2p
+import pkg/codexdht
 import ./version
 
 let doc =
@@ -26,13 +30,13 @@ type CrawlerConfig* = ref object
   metricsPort*: Port
   dataDir*: string
   discPort*: Port
-  bootNodes*: seq[string]
+  bootNodes*: seq[SignedPeerRecord]
 
 proc `$`*(config: CrawlerConfig): string =
   "CrawlerConfig:" & " logLevel=" & config.logLevel & " metricsAddress=" &
     $config.metricsAddress & " metricsPort=" & $config.metricsPort & " dataDir=" &
     config.dataDir & " discPort=" & $config.discPort & " bootNodes=" &
-    config.bootNodes.join(";")
+    config.bootNodes.mapIt($it).join(";")
 
 proc getDefaultTestnetBootNodes(): seq[string] =
   @[
@@ -45,10 +49,27 @@ proc getDefaultTestnetBootNodes(): seq[string] =
     "spr:CiUIAhIhAntGLadpfuBCD9XXfiN_43-V3L5VWgFCXxg4a8uhDdnYEgIDARo8CicAJQgCEiECe0Ytp2l-4EIP1dd-I3_jf5XcvlVaAUJfGDhry6EN2dgQsIufsAYaCwoJBNEmoCiRAnV2KkYwRAIgXO3bzd5VF8jLZG8r7dcLJ_FnQBYp1BcxrOvovEa40acCIDhQ14eJRoPwJ6GKgqOkXdaFAsoszl-HIRzYcXKeb7D9",
   ]
 
-proc getBootNodes(input: string): seq[string] =
+proc getBootNodeStrings(input: string): seq[string] =
   if input == "testnet_sprs":
     return getDefaultTestnetBootNodes()
   return input.split(";")
+
+proc stringToSpr(uri: string): SignedPeerRecord = 
+  var res: SignedPeerRecord
+  try:
+    if not res.fromURI(uri):
+      warn "Invalid SignedPeerRecord uri", uri = uri
+      quit QuitFailure
+  except LPError as exc:
+    warn "Invalid SignedPeerRecord uri", uri = uri, error = exc.msg
+    quit QuitFailure
+  except CatchableError as exc:
+    warn "Invalid SignedPeerRecord uri", uri = uri, error = exc.msg
+    quit QuitFailure
+  res
+
+proc getBootNodes(input: string): seq[SignedPeerRecord] =
+  getBootNodeStrings(input).mapIt(stringToSpr(it))
 
 proc parseConfig*(): CrawlerConfig =
   let args = docopt(doc, version = crawlerFullVersion)

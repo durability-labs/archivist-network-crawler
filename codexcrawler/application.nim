@@ -12,6 +12,8 @@ import ./config
 import ./logging
 import ./metrics
 import ./list
+import ./dht
+import ./keyutils
 
 declareGauge(todoNodesGauge, "DHT nodes to be visited")
 declareGauge(okNodesGauge, "DHT nodes successfully contacted")
@@ -29,15 +31,21 @@ type
     todoList*: List
     okNodes*: List
     nokNodes*: List
+    dht*: Dht
 
-proc createDatastore(app: Application): ?!TypedDatastore =
-  without store =? LevelDbDatastore.new(app.config.dataDir), err:
+proc createDatastore(app: Application, path: string): ?!Datastore =
+  without store =? LevelDbDatastore.new(path), err:
     error "Failed to create datastore"
+    return failure(err)
+  return success(Datastore(store))
+
+proc createTypedDatastore(app: Application, path: string): ?!TypedDatastore =
+  without store =? app.createDatastore(path), err:
     return failure(err)
   return success(TypedDatastore.init(store))
 
 proc initializeLists(app: Application): Future[?!void] {.async.} =
-  without store =? app.createDatastore(), err:
+  without store =? app.createTypedDatastore(app.config.dataDir), err:
     return failure(err)
 
   # We can't extract this into a function because gauges cannot be passed as argument.
@@ -64,10 +72,33 @@ proc initializeLists(app: Application): Future[?!void] {.async.} =
 
   return success()
 
+proc initializeDht(app: Application): ?!void =
+  without dhtStore =? app.createDatastore("dht"), err:
+    return failure(err)
+  let keyPath = app.config.dataDir / "privatekey"
+  without privateKey =? setupKey(keyPath), err:
+    return failure(err)
+
+  let announceAddresses = newSeq[MultiAddress]()
+
+  app.dht = Dht.new(
+    privateKey,
+    bindPort = app.config.discPort,
+    announceAddrs = announceAddresses,
+    bootstrapNodes = app.config.bootNodes,
+    store = dhtStore
+  )
+  return success()
+
 proc initializeApp(app: Application): Future[?!void] {.async.} =
   if err =? (await app.initializeLists()).errorOption:
     error "Failed to initialize lists", err = err.msg
     return failure(err)
+
+  if err =? app.initializeDht().errorOption:
+    error "Failed to initialize DHT", err = err.msg
+    return failure(err)
+
   return success()
 
 proc stop*(app: Application) =
