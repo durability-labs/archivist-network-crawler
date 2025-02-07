@@ -6,6 +6,7 @@ import pkg/questionable/results
 import ./dht
 import ./list
 import ./nodeentry
+import ./config
 
 import std/sequtils
 
@@ -14,6 +15,7 @@ logScope:
 
 type Crawler* = ref object
   dht: Dht
+  config: CrawlerConfig
   todoNodes: List
   okNodes: List
   nokNodes: List
@@ -32,7 +34,7 @@ proc handleNodeOk(c: Crawler, target: NodeEntry) {.async.} =
     error "Failed to add OK-node to list", err = err.msg
 
 proc addNewTodoNode(c: Crawler, nodeId: NodeId): Future[?!void] {.async.} =
-  let entry = NodeEntry(id: nodeId, value: "todo")
+  let entry = NodeEntry(id: nodeId, lastVisit: 0)
   return await c.todoNodes.add(entry)
 
 proc addNewTodoNodes(c: Crawler, newNodes: seq[Node]) {.async.} =
@@ -46,10 +48,10 @@ proc step(c: Crawler) {.async.} =
     ok = $c.okNodes.len
     nok = $c.nokNodes.len
 
-  without target =? (await c.todoNodes.pop()), err:
+  without var target =? (await c.todoNodes.pop()), err:
     error "Failed to get todo node", err = err.msg
 
-  # todo: update target timestamp
+  target.lastVisit = Moment.now().epochSeconds.uint64
 
   without receivedNodes =? (await c.dht.getNeighbors(target.id)), err:
     trace "Call failed", node = $target.id, err = err.msg
@@ -66,7 +68,7 @@ proc worker(c: Crawler) {.async.} =
   try:
     while true:
       await c.step()
-      await sleepAsync(3.secs)
+      await sleepAsync(c.config.stepDelayMs.millis)
   except Exception as exc:
     error "Exception in crawler worker", msg = exc.msg
     quit QuitFailure
@@ -85,6 +87,13 @@ proc start*(c: Crawler): Future[?!void] {.async.} =
   return success()
 
 proc new*(
-    T: type Crawler, dht: Dht, todoNodes: List, okNodes: List, nokNodes: List
+    T: type Crawler,
+    dht: Dht,
+    todoNodes: List,
+    okNodes: List,
+    nokNodes: List,
+    config: CrawlerConfig,
 ): Crawler =
-  Crawler(dht: dht, todoNodes: todoNodes, okNodes: okNodes, nokNodes: nokNodes)
+  Crawler(
+    dht: dht, todoNodes: todoNodes, okNodes: okNodes, nokNodes: nokNodes, config: config
+  )

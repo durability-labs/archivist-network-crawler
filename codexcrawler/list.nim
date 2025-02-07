@@ -30,19 +30,12 @@ type
     onMetric: OnUpdateMetric
 
 proc encode(s: NodeEntry): seq[byte] =
-  ($s.id & ";" & s.value).toBytes()
+  s.toBytes()
 
 proc decode(T: type NodeEntry, bytes: seq[byte]): ?!T =
-  let s = string.fromBytes(bytes)
-  if s.len == 0:
-    return success(NodeEntry(id: NodeId("0".u256), value: ""))
-
-  let tokens = s.split(";")
-  if tokens.len != 2:
-    return failure("expected 2 tokens")
-
-  let id = UInt256.fromHex(tokens[0])
-  success(NodeEntry(id: id, value: tokens[1]))
+  if bytes.len < 1:
+    return success(NodeEntry(id: UInt256.fromHex("0"), lastVisit: 0.uint64))
+  return NodeEntry.fromBytes(bytes)
 
 proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
   without itemKey =? Key.init(this.name / $item.id), err:
@@ -67,7 +60,7 @@ proc load*(this: List): Future[?!void] {.async.} =
       return failure(err)
     without value =? item.value, err:
       return failure(err)
-    if value.value.len > 0:
+    if value.id > 0 or value.lastVisit > 0:
       this.items.add(value)
 
   this.onMetric(this.items.len.int64)

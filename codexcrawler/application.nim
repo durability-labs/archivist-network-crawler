@@ -109,7 +109,8 @@ proc initializeDht(app: Application): Future[?!void] {.async.} =
   return success()
 
 proc initializeCrawler(app: Application): Future[?!void] {.async.} =
-  app.crawler = Crawler.new(app.dht, app.todoNodes, app.okNodes, app.nokNodes)
+  app.crawler =
+    Crawler.new(app.dht, app.todoNodes, app.okNodes, app.nokNodes, app.config)
   return await app.crawler.start()
 
 proc initializeApp(app: Application): Future[?!void] {.async.} =
