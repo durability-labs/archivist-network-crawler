@@ -7,6 +7,8 @@ import pkg/stew/byteutils
 import pkg/stew/endians2
 import pkg/questionable
 import pkg/questionable/results
+import pkg/stint
+import pkg/codexdht
 
 import std/sets
 import std/strutils
@@ -27,23 +29,29 @@ type
     onMetric: OnUpdateMetric
 
 proc encode(s: NodeEntry): seq[byte] =
-  (s.id & ";" & s.value).toBytes()
+  ($s.id & ";" & s.value).toBytes()
 
 proc decode(T: type NodeEntry, bytes: seq[byte]): ?!T =
   let s = string.fromBytes(bytes)
   if s.len == 0:
-    return success(NodeEntry(id: "", value: ""))
+    return success(NodeEntry(id: NodeId("0".u256), value: ""))
 
   let tokens = s.split(";")
   if tokens.len != 2:
     return failure("expected 2 tokens")
 
-  success(NodeEntry(id: tokens[0], value: tokens[1]))
+  success(NodeEntry(id: NodeId(tokens[0].u256), value: tokens[1]))
 
 proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
-  without itemKey =? Key.init(this.name / item.id), err:
+  without itemKey =? Key.init(this.name / $item.id), err:
     return failure(err)
   ?await this.store.put(itemKey, item)
+  return success()
+
+proc removeItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
+  without itemKey =? Key.init(this.name / $item.id), err:
+    return failure(err)
+  ?await this.store.delete(itemKey)
   return success()
 
 proc load*(this: List): Future[?!void] {.async.} =
@@ -57,7 +65,7 @@ proc load*(this: List): Future[?!void] {.async.} =
       return failure(err)
     without value =? item.value, err:
       return failure(err)
-    if value.id.len > 0:
+    if value.value.len > 0:
       this.items.incl(value)
 
   this.onMetric(this.items.len.int64)
@@ -76,3 +84,15 @@ proc add*(this: List, item: NodeEntry): Future[?!void] {.async.} =
   if err =? (await this.saveItem(item)).errorOption:
     return failure(err)
   return success()
+
+proc pop*(this: List): Future[?!NodeEntry] {.async.} =
+  if this.items.len < 1:
+    return failure(this.name & "List is empty.")
+
+  let item = this.items.pop()
+  if err =? (await this.removeItem(item)).errorOption:
+    return failure(err)
+  return success(item)
+
+proc len*(this: List): int =
+  this.items.len

@@ -108,15 +108,9 @@ proc initializeDht(app: Application): Future[?!void] {.async.} =
 
   return success()
 
-proc initializeCrawler(app: Application) =
-  app.crawler = Crawler.new(
-    app.dht,
-    app.todoNodes,
-    app.okNodes,
-    app.nokNodes
-  )
-
-  app.crawler.start()
+proc initializeCrawler(app: Application): Future[?!void] {.async.} =
+  app.crawler = Crawler.new(app.dht, app.todoNodes, app.okNodes, app.nokNodes)
+  return await app.crawler.start()
 
 proc initializeApp(app: Application): Future[?!void] {.async.} =
   if err =? (await app.initializeLists()).errorOption:
@@ -127,30 +121,11 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
     error "Failed to initialize DHT", err = err.msg
     return failure(err)
 
-  app.initializeCrawler()
+  if err =? (await app.initializeCrawler()).errorOption:
+    error "Failed to initialize crawler", err = err.msg
+    return failure(err)
 
   return success()
-
-# proc hackyCrawl(app: Application) {.async.} =
-#   info "starting hacky crawl..."
-#   await sleepAsync(3000)
-
-#   var nodeIds = app.dht.getRoutingTableNodeIds()
-#   trace "starting with routing table nodes", nodes = nodeIds.len
-
-#   while app.status == ApplicationStatus.Running and nodeIds.len > 0:
-#     let nodeId = nodeIds[0]
-#     nodeIds.delete(0)
-
-#     without newNodes =? (await app.dht.getNeighbors(nodeId)), err:
-#       error "getneighbors failed", err = err.msg
-
-#     for node in newNodes:
-#       nodeIds.add(node.id)
-#       trace "adding new node", id = $node.id, addrs = $node.address
-#     await sleepAsync(1000)
-
-#   info "hacky crawl stopped!"
 
 proc stop*(app: Application) =
   app.status = ApplicationStatus.Stopping
