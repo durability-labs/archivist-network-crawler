@@ -12,6 +12,7 @@ import pkg/codexdht
 
 import std/sets
 import std/strutils
+import std/sequtils
 import std/os
 
 import ./nodeentry
@@ -25,7 +26,7 @@ type
   List* = ref object
     name: string
     store: TypedDatastore
-    items: HashSet[NodeEntry]
+    items: seq[NodeEntry]
     onMetric: OnUpdateMetric
 
 proc encode(s: NodeEntry): seq[byte] =
@@ -40,7 +41,8 @@ proc decode(T: type NodeEntry, bytes: seq[byte]): ?!T =
   if tokens.len != 2:
     return failure("expected 2 tokens")
 
-  success(NodeEntry(id: NodeId(tokens[0].u256), value: tokens[1]))
+  let id = UInt256.fromHex(tokens[0])
+  success(NodeEntry(id: id, value: tokens[1]))
 
 proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
   without itemKey =? Key.init(this.name / $item.id), err:
@@ -66,7 +68,7 @@ proc load*(this: List): Future[?!void] {.async.} =
     without value =? item.value, err:
       return failure(err)
     if value.value.len > 0:
-      this.items.incl(value)
+      this.items.add(value)
 
   this.onMetric(this.items.len.int64)
   info "Loaded list", name = this.name, items = this.items.len
@@ -77,8 +79,17 @@ proc new*(
 ): List =
   List(name: name, store: store, onMetric: onMetric)
 
+proc contains*(this: List, nodeId: NodeId): bool =
+  this.items.anyIt(it.id == nodeId)
+
+proc contains*(this: List, item: NodeEntry): bool =
+  this.contains(item.id)
+
 proc add*(this: List, item: NodeEntry): Future[?!void] {.async.} =
-  this.items.incl(item)
+  if this.contains(item):
+    return success()
+
+  this.items.add(item)
   this.onMetric(this.items.len.int64)
 
   if err =? (await this.saveItem(item)).errorOption:
@@ -89,7 +100,10 @@ proc pop*(this: List): Future[?!NodeEntry] {.async.} =
   if this.items.len < 1:
     return failure(this.name & "List is empty.")
 
-  let item = this.items.pop()
+  let item = this.items[0]
+  this.items.delete(0)
+  this.onMetric(this.items.len.int64)
+
   if err =? (await this.removeItem(item)).errorOption:
     return failure(err)
   return success(item)

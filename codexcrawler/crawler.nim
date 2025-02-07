@@ -7,6 +7,8 @@ import ./dht
 import ./list
 import ./nodeentry
 
+import std/sequtils
+
 logScope:
   topics = "crawler"
 
@@ -15,6 +17,11 @@ type Crawler* = ref object
   todoNodes: List
   okNodes: List
   nokNodes: List
+
+# This is not going to stay this way.
+proc isNew(c: Crawler, node: Node): bool =
+  not c.todoNodes.contains(node.id) and not c.okNodes.contains(node.id) and
+    not c.nokNodes.contains(node.id)
 
 proc handleNodeNotOk(c: Crawler, target: NodeEntry) {.async.} =
   if err =? (await c.nokNodes.add(target)).errorOption:
@@ -34,16 +41,24 @@ proc addNewTodoNodes(c: Crawler, newNodes: seq[Node]) {.async.} =
       error "Failed to add todo-node to list", err = err.msg
 
 proc step(c: Crawler) {.async.} =
+  logScope:
+    todo = $c.todoNodes.len
+    ok = $c.okNodes.len
+    nok = $c.nokNodes.len
+
   without target =? (await c.todoNodes.pop()), err:
     error "Failed to get todo node", err = err.msg
 
   # todo: update target timestamp
 
-  without newNodes =? (await c.dht.getNeighbors(target.id)), err:
-    trace "getNeighbors call failed", node = $target.id, err = err.msg
+  without receivedNodes =? (await c.dht.getNeighbors(target.id)), err:
+    trace "Call failed", node = $target.id, err = err.msg
     await c.handleNodeNotOk(target)
     return
 
+  let newNodes = receivedNodes.filterIt(isNew(c, it))
+
+  trace "Received nodes", receivedNodes = receivedNodes.len, newNodes = newNodes.len
   await c.handleNodeOk(target)
   await c.addNewTodoNodes(newNodes)
 
