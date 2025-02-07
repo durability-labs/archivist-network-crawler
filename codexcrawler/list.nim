@@ -22,6 +22,7 @@ logScope:
 
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
+  OnItem = proc(item: NodeEntry): void {.gcsafe, raises: [].}
 
   List* = ref object
     name: string
@@ -41,12 +42,6 @@ proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
   without itemKey =? Key.init(this.name / $item.id), err:
     return failure(err)
   ?await this.store.put(itemKey, item)
-  return success()
-
-proc removeItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
-  without itemKey =? Key.init(this.name / $item.id), err:
-    return failure(err)
-  ?await this.store.delete(itemKey)
   return success()
 
 proc load*(this: List): Future[?!void] {.async.} =
@@ -89,17 +84,31 @@ proc add*(this: List, item: NodeEntry): Future[?!void] {.async.} =
     return failure(err)
   return success()
 
+proc remove*(this: List, item: NodeEntry): Future[?!void] {.async.} =
+  if this.items.len < 1:
+    return failure(this.name & "List is empty.")
+
+  this.items.keepItIf(item.id != it.id)
+  without itemKey =? Key.init(this.name / $item.id), err:
+    return failure(err)
+  ?await this.store.delete(itemKey)
+  this.onMetric(this.items.len.int64)
+  return success()
+
 proc pop*(this: List): Future[?!NodeEntry] {.async.} =
   if this.items.len < 1:
     return failure(this.name & "List is empty.")
 
   let item = this.items[0]
-  this.items.delete(0)
-  this.onMetric(this.items.len.int64)
 
-  if err =? (await this.removeItem(item)).errorOption:
+  if err =? (await this.remove(item)).errorOption:
     return failure(err)
   return success(item)
 
 proc len*(this: List): int =
   this.items.len
+
+proc iterateAll*(this: List, onItem: OnItem) {.async.} =
+  for item in this.items:
+    onItem(item)
+    await sleepAsync(1.millis)

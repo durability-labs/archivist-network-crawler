@@ -16,6 +16,7 @@ import ./list
 import ./dht
 import ./keyutils
 import ./crawler
+import ./timetracker
 
 declareGauge(todoNodesGauge, "DHT nodes to be visited")
 declareGauge(okNodesGauge, "DHT nodes successfully contacted")
@@ -35,6 +36,7 @@ type
     nokNodes*: List
     dht*: Dht
     crawler*: Crawler
+    timeTracker*: TimeTracker
 
 proc createDatastore(app: Application, path: string): ?!Datastore =
   without store =? LevelDbDatastore.new(path), err:
@@ -113,6 +115,11 @@ proc initializeCrawler(app: Application): Future[?!void] {.async.} =
     Crawler.new(app.dht, app.todoNodes, app.okNodes, app.nokNodes, app.config)
   return await app.crawler.start()
 
+proc initializeTimeTracker(app: Application): Future[?!void] {.async.} =
+  app.timeTracker =
+    TimeTracker.new(app.todoNodes, app.okNodes, app.nokNodes, app.config)
+  return await app.timeTracker.start()
+
 proc initializeApp(app: Application): Future[?!void] {.async.} =
   if err =? (await app.initializeLists()).errorOption:
     error "Failed to initialize lists", err = err.msg
@@ -124,6 +131,10 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
 
   if err =? (await app.initializeCrawler()).errorOption:
     error "Failed to initialize crawler", err = err.msg
+    return failure(err)
+
+  if err =? (await app.initializeTimeTracker()).errorOption:
+    error "Failed to initialize timetracker", err = err.msg
     return failure(err)
 
   return success()

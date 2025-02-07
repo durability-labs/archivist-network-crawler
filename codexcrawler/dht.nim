@@ -42,10 +42,8 @@ proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
 
 proc getRoutingTableNodeIds*(d: Dht): seq[NodeId] =
   var ids = newSeq[NodeId]()
-  info "routing table", len = $d.protocol.routingTable.len
   for bucket in d.protocol.routingTable.buckets:
     for node in bucket.nodes:
-      warn "node seen", node = $node.id, seen = $node.seen
       ids.add(node.id)
   return ids
 
