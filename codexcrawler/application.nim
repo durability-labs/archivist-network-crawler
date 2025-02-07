@@ -15,6 +15,7 @@ import ./metrics
 import ./list
 import ./dht
 import ./keyutils
+import ./crawler
 
 declareGauge(todoNodesGauge, "DHT nodes to be visited")
 declareGauge(okNodesGauge, "DHT nodes successfully contacted")
@@ -29,10 +30,11 @@ type
   Application* = ref object
     status: ApplicationStatus
     config*: CrawlerConfig
-    todoList*: List
+    todoNodes*: List
     okNodes*: List
     nokNodes*: List
     dht*: Dht
+    crawler*: Crawler
 
 proc createDatastore(app: Application, path: string): ?!Datastore =
   without store =? LevelDbDatastore.new(path), err:
@@ -60,11 +62,11 @@ proc initializeLists(app: Application): Future[?!void] {.async.} =
   proc onNokMetric(value: int64) =
     nokNodesGauge.set(value)
 
-  app.todoList = List.new("todo", store, onTodoMetric)
+  app.todoNodes = List.new("todo", store, onTodoMetric)
   app.okNodes = List.new("ok", store, onOkMetric)
   app.nokNodes = List.new("nok", store, onNokMetric)
 
-  if err =? (await app.todoList.load()).errorOption:
+  if err =? (await app.todoNodes.load()).errorOption:
     return failure(err)
   if err =? (await app.okNodes.load()).errorOption:
     return failure(err)
@@ -86,7 +88,9 @@ proc initializeDht(app: Application): Future[?!void] {.async.} =
   # listenAddresses.add(aaa)
 
   var discAddresses = newSeq[MultiAddress]()
-  let bbb = MultiAddress.init("/ip4/" & app.config.publicIp & "/udp/" & $app.config.discPort).expect("Should init multiaddress")
+  let bbb = MultiAddress
+    .init("/ip4/" & app.config.publicIp & "/udp/" & $app.config.discPort)
+    .expect("Should init multiaddress")
   discAddresses.add(bbb)
 
   app.dht = Dht.new(
@@ -104,6 +108,16 @@ proc initializeDht(app: Application): Future[?!void] {.async.} =
 
   return success()
 
+proc initializeCrawler(app: Application) =
+  app.crawler = Crawler.new(
+    app.dht,
+    app.todoNodes,
+    app.okNodes,
+    app.nokNodes
+  )
+
+  app.crawler.start()
+
 proc initializeApp(app: Application): Future[?!void] {.async.} =
   if err =? (await app.initializeLists()).errorOption:
     error "Failed to initialize lists", err = err.msg
@@ -113,28 +127,30 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
     error "Failed to initialize DHT", err = err.msg
     return failure(err)
 
+  app.initializeCrawler()
+
   return success()
 
-proc hackyCrawl(app: Application) {.async.} =
-  info "starting hacky crawl..."
-  await sleepAsync(3000)
+# proc hackyCrawl(app: Application) {.async.} =
+#   info "starting hacky crawl..."
+#   await sleepAsync(3000)
 
-  var nodeIds = app.dht.getRoutingTableNodeIds()
-  trace "starting with routing table nodes", nodes = nodeIds.len
+#   var nodeIds = app.dht.getRoutingTableNodeIds()
+#   trace "starting with routing table nodes", nodes = nodeIds.len
 
-  while app.status == ApplicationStatus.Running and nodeIds.len > 0:
-    let nodeId = nodeIds[0]
-    nodeIds.delete(0)
+#   while app.status == ApplicationStatus.Running and nodeIds.len > 0:
+#     let nodeId = nodeIds[0]
+#     nodeIds.delete(0)
 
-    without newNodes =? (await app.dht.getNeighbors(nodeId)), err:
-      error "getneighbors failed", err = err.msg
-      
-    for node in newNodes:
-      nodeIds.add(node.id)
-      trace "adding new node", id = $node.id, addrs = $node.address
-    await sleepAsync(1000)
+#     without newNodes =? (await app.dht.getNeighbors(nodeId)), err:
+#       error "getneighbors failed", err = err.msg
 
-  info "hacky crawl stopped!"
+#     for node in newNodes:
+#       nodeIds.add(node.id)
+#       trace "adding new node", id = $node.id, addrs = $node.address
+#     await sleepAsync(1000)
+
+#   info "hacky crawl stopped!"
 
 proc stop*(app: Application) =
   app.status = ApplicationStatus.Stopping
@@ -160,8 +176,6 @@ proc run*(app: Application) =
     app.status = ApplicationStatus.Stopping
     error "Failed to start application", err = err.msg
     return
-
-  asyncSpawn app.hackyCrawl()
 
   while app.status == ApplicationStatus.Running:
     try:

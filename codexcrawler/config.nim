@@ -14,7 +14,7 @@ Usage:
 
 Options:
   --logLevel=<l>          Sets log level [default: TRACE]
-  --publicIp=<a>          Public IP address where this instance is reachable. [default: 62.45.154.249]
+  --publicIp=<a>          Public IP address where this instance is reachable.
   --metricsAddress=<ip>   Listen address of the metrics server [default: 0.0.0.0]
   --metricsPort=<p>       Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>         Directory for storing data [default: crawler_data]
@@ -35,9 +35,9 @@ type CrawlerConfig* = ref object
   bootNodes*: seq[SignedPeerRecord]
 
 proc `$`*(config: CrawlerConfig): string =
-  "CrawlerConfig:" & " logLevel=" & config.logLevel & " metricsAddress=" &
-    $config.metricsAddress & " metricsPort=" & $config.metricsPort & " dataDir=" &
-    config.dataDir & " discPort=" & $config.discPort & " bootNodes=" &
+  "CrawlerConfig:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
+    " metricsAddress=" & $config.metricsAddress & " metricsPort=" & $config.metricsPort &
+    " dataDir=" & config.dataDir & " discPort=" & $config.discPort & " bootNodes=" &
     config.bootNodes.mapIt($it).join(";")
 
 proc getDefaultTestnetBootNodes(): seq[string] =
