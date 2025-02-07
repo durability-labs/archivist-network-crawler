@@ -41,21 +41,24 @@ proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
   return failure("Node not found for id: " & $nodeId)
 
 proc hacky*(d: Dht, nodeId: NodeId) {.async.} =
-  let node = await d.protocol.resolve(nodeId)
+  await sleepAsync(1)
+  let node = d.protocol.getNode(nodeId)
   if node.isSome():
-    info "that worked"
+    let n = node.get()
+    info "that worked", node = $n.id, seen = $n.seen
   else:
-    info "that didn't work"
+    info "that didn't work", node = $nodeId
     
 proc getRoutingTableNodeIds*(d: Dht): Future[seq[NodeId]] {.async.} =
   var ids = newSeq[NodeId]()
+  info "routing table", len = $d.protocol.routingTable.len
   for bucket in d.protocol.routingTable.buckets:
     for node in bucket.nodes:
       warn "node seen", node = $node.id, seen = $node.seen
       ids.add(node.id)
 
-      # await d.hacky(node.id)
-      await sleepAsync(1)
+      await d.hacky(node.id)
+      # await sleepAsync(1)
   return ids
 
 proc getDistances(): seq[uint16] =

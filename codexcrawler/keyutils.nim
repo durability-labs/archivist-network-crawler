@@ -50,7 +50,7 @@ proc setupKey*(path: string): ?!PrivateKey =
   if not path.fileAccessible({AccessFlags.Find}):
     info "Creating a private key and saving it"
     let
-      res = ?PrivateKey.random(Rng.instance()[]).mapFailure(KeyError)
+      res = ?PrivateKey.random(PKScheme.Secp256k1, Rng.instance()[]).mapFailure(KeyError)
       bytes = ?res.getBytes().mapFailure(KeyError)
 
     ?path.secureWriteFile(bytes).mapFailure(KeyError)
