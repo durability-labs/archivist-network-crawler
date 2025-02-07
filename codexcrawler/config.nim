@@ -10,10 +10,11 @@ let doc =
 Codex Network Crawler. Generates network metrics.
 
 Usage:
-  codexcrawler [--logLevel=<l>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>]
+  codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>]
 
 Options:
   --logLevel=<l>          Sets log level [default: TRACE]
+  --publicIp=<a>          Public IP address where this instance is reachable. [default: 62.45.154.249]
   --metricsAddress=<ip>   Listen address of the metrics server [default: 0.0.0.0]
   --metricsPort=<p>       Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>         Directory for storing data [default: crawler_data]
@@ -26,6 +27,7 @@ import docopt
 
 type CrawlerConfig* = ref object
   logLevel*: string
+  publicIp*: string
   metricsAddress*: IpAddress
   metricsPort*: Port
   dataDir*: string
@@ -82,6 +84,7 @@ proc parseConfig*(): CrawlerConfig =
 
   return CrawlerConfig(
     logLevel: get("--logLevel"),
+    publicIp: get("--publicIp"),
     metricsAddress: parseIpAddress(get("--metricsAddress")),
     metricsPort: Port(parseInt(get("--metricsPort"))),
     dataDir: get("--dataDir"),

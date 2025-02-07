@@ -40,38 +40,20 @@ proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
     return success(node.get())
   return failure("Node not found for id: " & $nodeId)
 
-proc hacky*(d: Dht, nodeId: NodeId) {.async.} =
-  await sleepAsync(1)
-  let node = d.protocol.getNode(nodeId)
-  if node.isSome():
-    let n = node.get()
-    info "that worked", node = $n.id, seen = $n.seen
-  else:
-    info "that didn't work", node = $nodeId
-    
-proc getRoutingTableNodeIds*(d: Dht): Future[seq[NodeId]] {.async.} =
+proc getRoutingTableNodeIds*(d: Dht): seq[NodeId] =
   var ids = newSeq[NodeId]()
   info "routing table", len = $d.protocol.routingTable.len
   for bucket in d.protocol.routingTable.buckets:
     for node in bucket.nodes:
       warn "node seen", node = $node.id, seen = $node.seen
       ids.add(node.id)
-
-      await d.hacky(node.id)
-      # await sleepAsync(1)
   return ids
-
-proc getDistances(): seq[uint16] =
-  var d = newSeq[uint16]()
-  for i in 0..10:
-    d.add(i.uint16)
-  return d
 
 proc getNeighbors*(d: Dht, target: NodeId): Future[?!seq[Node]] {.async.} =
   without node =? d.getNode(target), err:
     return failure(err)
 
-  let distances = getDistances()
+  let distances = @[256.uint16]
   let response = await d.protocol.findNode(node, distances)
 
   if response.isOk():

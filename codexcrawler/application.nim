@@ -80,21 +80,28 @@ proc initializeDht(app: Application): Future[?!void] {.async.} =
   without privateKey =? setupKey(keyPath), err:
     return failure(err)
 
-  var announceAddresses = newSeq[MultiAddress]()
-  let aaa = MultiAddress.init("/ip4/172.21.64.1/udp/8090").expect("Should init multiaddress")
-  # /ip4/45.82.185.194/udp/8090
-  # /ip4/172.21.64.1/udp/8090
-  announceAddresses.add(aaa)
+  var listenAddresses = newSeq[MultiAddress]()
+  # TODO: when p2p connections are supported:
+  # let aaa = MultiAddress.init("/ip4/" & app.config.publicIp & "/tcp/53678").expect("Should init multiaddress")
+  # listenAddresses.add(aaa)
+
+  var discAddresses = newSeq[MultiAddress]()
+  let bbb = MultiAddress.init("/ip4/" & app.config.publicIp & "/udp/" & $app.config.discPort).expect("Should init multiaddress")
+  discAddresses.add(bbb)
 
   app.dht = Dht.new(
     privateKey,
     bindPort = app.config.discPort,
-    announceAddrs = announceAddresses,
+    announceAddrs = listenAddresses,
     bootstrapNodes = app.config.bootNodes,
     store = dhtStore,
   )
 
+  app.dht.updateAnnounceRecord(listenAddresses)
+  app.dht.updateDhtRecord(discAddresses)
+
   await app.dht.start()
+
   return success()
 
 proc initializeApp(app: Application): Future[?!void] {.async.} =
@@ -112,21 +119,22 @@ proc hackyCrawl(app: Application) {.async.} =
   info "starting hacky crawl..."
   await sleepAsync(3000)
 
-  var nodeIds = await app.dht.getRoutingTableNodeIds()
+  var nodeIds = app.dht.getRoutingTableNodeIds()
   trace "starting with routing table nodes", nodes = nodeIds.len
 
-  while app.status == ApplicationStatus.Running:
+  while app.status == ApplicationStatus.Running and nodeIds.len > 0:
     let nodeId = nodeIds[0]
     nodeIds.delete(0)
 
     without newNodes =? (await app.dht.getNeighbors(nodeId)), err:
       error "getneighbors failed", err = err.msg
       
-    trace "adding new nodes", len = newNodes.len
-    for id in newNodes.mapIt(it.id):
-      nodeIds.add(id)
+    for node in newNodes:
+      nodeIds.add(node.id)
+      trace "adding new node", id = $node.id, addrs = $node.address
     await sleepAsync(1000)
 
+  info "hacky crawl stopped!"
 
 proc stop*(app: Application) =
   app.status = ApplicationStatus.Stopping
