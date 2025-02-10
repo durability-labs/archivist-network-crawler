@@ -1,3 +1,3 @@
-import ./codexcrawler/exampletest
+import ./codexcrawler/testutils
 
 {.warning[UnusedImport]: off.}
