@@ -20,7 +20,7 @@ type
 
   State* = ref object
     config*: Config
-    events*: Events # appstate
+    events*: Events
 
 proc whileRunning*(this: State, step: OnStep, delay: Duration) =
   discard

@@ -34,43 +34,35 @@ type
     okNodes*: List
     nokNodes*: List
 
-proc initializeLists(app: Application): Future[?!void] {.async.} =
-  without store =? createTypedDatastore(app.config.dataDir / "lists"), err:
-    return failure(err)
+# proc initializeLists(app: Application): Future[?!void] {.async.} =
+#   without store =? createTypedDatastore(app.config.dataDir / "lists"), err:
+#     return failure(err)
 
-  # We can't extract this into a function because gauges cannot be passed as argument.
-  # The use of global state in nim-metrics is not pleasant.
-  proc onTodoMetric(value: int64) =
-    todoNodesGauge.set(value)
+#   # We can't extract this into a function because gauges cannot be passed as argument.
+#   # The use of global state in nim-metrics is not pleasant.
+#   proc onTodoMetric(value: int64) =
+#     todoNodesGauge.set(value)
 
-  proc onOkMetric(value: int64) =
-    okNodesGauge.set(value)
+#   proc onOkMetric(value: int64) =
+#     okNodesGauge.set(value)
 
-  proc onNokMetric(value: int64) =
-    nokNodesGauge.set(value)
+#   proc onNokMetric(value: int64) =
+#     nokNodesGauge.set(value)
 
-  app.todoNodes = List.new("todo", store, onTodoMetric)
-  app.okNodes = List.new("ok", store, onOkMetric)
-  app.nokNodes = List.new("nok", store, onNokMetric)
+#   app.todoNodes = List.new("todo", store, onTodoMetric)
+#   app.okNodes = List.new("ok", store, onOkMetric)
+#   app.nokNodes = List.new("nok", store, onNokMetric)
 
-  if err =? (await app.todoNodes.load()).errorOption:
-    return failure(err)
-  if err =? (await app.okNodes.load()).errorOption:
-    return failure(err)
-  if err =? (await app.nokNodes.load()).errorOption:
-    return failure(err)
+#   if err =? (await app.todoNodes.load()).errorOption:
+#     return failure(err)
+#   if err =? (await app.okNodes.load()).errorOption:
+#     return failure(err)
+#   if err =? (await app.nokNodes.load()).errorOption:
+#     return failure(err)
 
-  return success()
+#   return success()
 
 proc initializeApp(app: Application): Future[?!void] {.async.} =
-  if err =? (await app.initializeLists()).errorOption:
-    error "Failed to initialize lists", err = err.msg
-    return failure(err)
-  
-  without components =? (await createComponents(app.config)), err:
-    error "Failed to create componenents", err = err.msg
-    return failure(err)
-
   # todo move this
   let state = State(
     config: app.config,
@@ -82,14 +74,13 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
     ),
   )
 
-  for c in components:
-    if err =? (await c.start(state)).errorOption:
-      error "Failed to start component", err = err.msg
-
-  # test raise newnodes
-  let nodes: seq[Nid] = newSeq[Nid]()
-  if err =? (await state.events.nodesFound.fire(nodes)).errorOption:
+  without components =? (await createComponents(state)), err:
+    error "Failed to create componenents", err = err.msg
     return failure(err)
+
+  for c in components:
+    if err =? (await c.start()).errorOption:
+      error "Failed to start component", err = err.msg
 
   return success()
 

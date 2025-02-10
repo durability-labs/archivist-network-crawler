@@ -51,7 +51,7 @@ proc worker(t: TimeTracker) {.async.} =
     error "Exception in timetracker worker", msg = exc.msg
     quit QuitFailure
 
-method start*(t: TimeTracker, state: State): Future[?!void] {.async.} =
+method start*(t: TimeTracker): Future[?!void] {.async.} =
   info "Starting timetracker...", revisitDelayMins = $t.workerDelay
   asyncSpawn t.worker()
   return success()

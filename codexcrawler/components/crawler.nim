@@ -80,7 +80,7 @@ proc worker(c: Crawler) {.async.} =
     error "Exception in crawler worker", msg = exc.msg
     quit QuitFailure
 
-method start*(c: Crawler, state: State): Future[?!void] {.async.} =
+method start*(c: Crawler): Future[?!void] {.async.} =
   info "Starting crawler...", stepDelayMs = $c.config.stepDelayMs
   asyncSpawn c.worker()
   return success()

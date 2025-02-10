@@ -13,7 +13,6 @@ import ../utils/datastoreutils
 import ../utils/rng
 import ../utils/asyncdataevent
 import ../component
-import ../config
 import ../state
 
 export discv5
@@ -22,6 +21,7 @@ logScope:
   topics = "dht"
 
 type Dht* = ref object of Component
+  state: State
   protocol*: discv5.Protocol
   key: PrivateKey
   peerId: PeerId
@@ -103,19 +103,19 @@ proc updateDhtRecord(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
-proc findRoutingTableNodes(d: Dht, state: State) {.async.} =
+proc findRoutingTableNodes(d: Dht) {.async.} =
   await sleepAsync(5.seconds)
   let nodes = d.getRoutingTableNodeIds()
 
-  if err =? (await state.events.nodesFound.fire(nodes)).errorOption:
+  if err =? (await d.state.events.nodesFound.fire(nodes)).errorOption:
     error "Failed to raise routing-table nodes as found nodes", err = err.msg
   else:
     trace "Routing table nodes raise as found nodes", num = nodes.len
 
-method start*(d: Dht, state: State): Future[?!void] {.async.} =
+method start*(d: Dht): Future[?!void] {.async.} =
   d.protocol.open()
   await d.protocol.start()
-  asyncSpawn d.findRoutingTableNodes(state)
+  asyncSpawn d.findRoutingTableNodes()
   return success()
 
 method stop*(d: Dht): Future[?!void] {.async.} =
@@ -124,6 +124,7 @@ method stop*(d: Dht): Future[?!void] {.async.} =
 
 proc new(
     T: type Dht,
+    state: State,
     key: PrivateKey,
     bindIp = IPv4_any(),
     bindPort = 0.Port,
@@ -131,7 +132,9 @@ proc new(
     bootstrapNodes: openArray[SignedPeerRecord] = [],
     store: Datastore = SQLiteDatastore.new(Memory).expect("Should not fail!"),
 ): Dht =
-  var self = Dht(key: key, peerId: PeerId.init(key).expect("Should construct PeerId"))
+  var self = Dht(
+    state: state, key: key, peerId: PeerId.init(key).expect("Should construct PeerId")
+  )
 
   self.updateAnnounceRecord(announceAddrs)
 
@@ -155,29 +158,30 @@ proc new(
 
   self
 
-proc createDht*(config: Config): Future[?!Dht] {.async.} =
-  without dhtStore =? createDatastore(config.dataDir / "dht"), err:
+proc createDht*(state: State): Future[?!Dht] {.async.} =
+  without dhtStore =? createDatastore(state.config.dataDir / "dht"), err:
     return failure(err)
-  let keyPath = config.dataDir / "privatekey"
+  let keyPath = state.config.dataDir / "privatekey"
   without privateKey =? setupKey(keyPath), err:
     return failure(err)
 
   var listenAddresses = newSeq[MultiAddress]()
   # TODO: when p2p connections are supported:
-  # let aaa = MultiAddress.init("/ip4/" & config.publicIp & "/tcp/53678").expect("Should init multiaddress")
+  # let aaa = MultiAddress.init("/ip4/" & state.config.publicIp & "/tcp/53678").expect("Should init multiaddress")
   # listenAddresses.add(aaa)
 
   var discAddresses = newSeq[MultiAddress]()
   let bbb = MultiAddress
-    .init("/ip4/" & config.publicIp & "/udp/" & $config.discPort)
+    .init("/ip4/" & state.config.publicIp & "/udp/" & $state.config.discPort)
     .expect("Should init multiaddress")
   discAddresses.add(bbb)
 
   let dht = Dht.new(
+    state,
     privateKey,
-    bindPort = config.discPort,
+    bindPort = state.config.discPort,
     announceAddrs = listenAddresses,
-    bootstrapNodes = config.bootNodes,
+    bootstrapNodes = state.config.bootNodes,
     store = dhtStore,
   )
 
