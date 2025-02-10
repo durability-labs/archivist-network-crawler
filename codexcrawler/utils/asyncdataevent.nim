@@ -18,16 +18,17 @@ type
 
 proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
   AsyncDataEvent[T](
-    queue: newAsyncEventQueue[?T](),
-    subscriptions: newSeq[AsyncDataEventSubscription]()
+    queue: newAsyncEventQueue[?T](), subscriptions: newSeq[AsyncDataEventSubscription]()
   )
 
-proc subscribe*[T](event: AsyncDataEvent[T], handler: AsyncDataEventHandler[T]): AsyncDataEventSubscription =
+proc subscribe*[T](
+    event: AsyncDataEvent[T], handler: AsyncDataEventHandler[T]
+): AsyncDataEventSubscription =
   let subscription = AsyncDataEventSubscription(
     key: event.queue.register(),
     isRunning: true,
     fireEvent: newAsyncEvent(),
-    stopEvent: newAsyncEvent()
+    stopEvent: newAsyncEvent(),
   )
 
   proc listener() {.async.} =
@@ -52,7 +53,9 @@ proc fire*[T](event: AsyncDataEvent[T], data: T): Future[?!void] {.async.} =
       return failure(err)
   success()
 
-proc unsubscribe*[T](event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription) {.async.} =
+proc unsubscribe*[T](
+    event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription
+) {.async.} =
   subscription.isRunning = false
   event.queue.emit(T.none)
   await subscription.stopEvent.wait()

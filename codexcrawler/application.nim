@@ -11,9 +11,11 @@ import ./utils/logging
 import ./metrics
 import ./list
 import ./utils/datastoreutils
+import ./utils/asyncdataevent
 import ./installer
 import ./state
 import ./component
+import ./types
 
 declareGauge(todoNodesGauge, "DHT nodes to be visited")
 declareGauge(okNodesGauge, "DHT nodes successfully contacted")
@@ -83,12 +85,23 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
 
   # todo move this
   let state = State(
-    config: app.config
+    config: app.config,
+    events: Events(
+      nodesFound: newAsyncDataEvent[seq[Nid]](),
+      newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),
+      dhtNodeCheck: newAsyncDataEvent[DhtNodeCheckEventData](),
+      nodesExpired: newAsyncDataEvent[seq[Nid]](),
+    ),
   )
 
   for c in components:
     if err =? (await c.start(state)).errorOption:
       error "Failed to start component", err = err.msg
+
+  # test raise newnodes
+  let nodes: seq[Nid] = newSeq[Nid]()
+  if err =? (await state.events.nodesFound.fire(nodes)).errorOption:
+    return failure(err)
 
   return success()
 

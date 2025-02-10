@@ -1,3 +1,4 @@
+import std/os
 import std/net
 import pkg/chronicles
 import pkg/chronos
@@ -7,8 +8,12 @@ import pkg/questionable/results
 import pkg/codexdht/discv5/[routing_table, protocol as discv5]
 from pkg/nimcrypto import keccak256
 
+import ../utils/keyutils
+import ../utils/datastoreutils
 import ../utils/rng
 import ../component
+import ../config
+import ../state
 
 export discv5
 
@@ -97,16 +102,16 @@ proc updateDhtRecord*(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
-proc start*(d: Dht): Future[?!void] {.async.} =
+method start*(d: Dht, state: State): Future[?!void] {.async.} =
   d.protocol.open()
   await d.protocol.start()
   return success()
 
-proc stop*(d: Dht): Future[?!void] {.async.} =
+method stop*(d: Dht): Future[?!void] {.async.} =
   await d.protocol.closeWait()
   return success()
 
-proc new*(
+proc new(
     T: type Dht,
     key: PrivateKey,
     bindIp = IPv4_any(),
@@ -138,3 +143,34 @@ proc new*(
   )
 
   self
+
+proc createDht*(config: Config): Future[?!Dht] {.async.} =
+  without dhtStore =? createDatastore(config.dataDir / "dht"), err:
+    return failure(err)
+  let keyPath = config.dataDir / "privatekey"
+  without privateKey =? setupKey(keyPath), err:
+    return failure(err)
+
+  var listenAddresses = newSeq[MultiAddress]()
+  # TODO: when p2p connections are supported:
+  # let aaa = MultiAddress.init("/ip4/" & config.publicIp & "/tcp/53678").expect("Should init multiaddress")
+  # listenAddresses.add(aaa)
+
+  var discAddresses = newSeq[MultiAddress]()
+  let bbb = MultiAddress
+    .init("/ip4/" & config.publicIp & "/udp/" & $config.discPort)
+    .expect("Should init multiaddress")
+  discAddresses.add(bbb)
+
+  let dht = Dht.new(
+    privateKey,
+    bindPort = config.discPort,
+    announceAddrs = listenAddresses,
+    bootstrapNodes = config.bootNodes,
+    store = dhtStore,
+  )
+
+  dht.updateAnnounceRecord(listenAddresses)
+  dht.updateDhtRecord(discAddresses)
+
+  return success(dht)

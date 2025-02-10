@@ -8,6 +8,9 @@ import ../list
 import ../nodeentry
 import ../config
 import ../component
+import ../types
+import ../state
+import ../utils/asyncdataevent
 
 import std/sequtils
 
@@ -72,26 +75,33 @@ proc step(c: Crawler) {.async.} =
 proc worker(c: Crawler) {.async.} =
   try:
     while true:
-      await c.step()
+      # await c.step()
       await sleepAsync(c.config.stepDelayMs.millis)
   except Exception as exc:
     error "Exception in crawler worker", msg = exc.msg
     quit QuitFailure
 
-proc start*(c: Crawler): Future[?!void] {.async.} =
-  if c.todoNodes.len < 1:
-    let nodeIds = c.dht.getRoutingTableNodeIds()
-    info "Loading routing-table nodes to todo-list...", nodes = nodeIds.len
-    for id in nodeIds:
-      if err =? (await c.addNewTodoNode(id)).errorOption:
-        error "Failed to add routing-table node to todo-list", err = err.msg
-        return failure(err)
+method start*(c: Crawler, state: State): Future[?!void] {.async.} =
+  # if c.todoNodes.len < 1:
+  #   let nodeIds = c.dht.getRoutingTableNodeIds()
+  #   info "Loading routing-table nodes to todo-list...", nodes = nodeIds.len
+  #   for id in nodeIds:
+  #     if err =? (await c.addNewTodoNode(id)).errorOption:
+  #       error "Failed to add routing-table node to todo-list", err = err.msg
+  #       return failure(err)
 
   info "Starting crawler...", stepDelayMs = $c.config.stepDelayMs
   asyncSpawn c.worker()
+
+  proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
+    info "Crawler sees nodes found!", num = nids.len
+    return success()
+
+  let handle = state.events.nodesFound.subscribe(onNodesFound)
+
   return success()
 
-proc stop*(c: Crawler): Future[?!void] {.async.} =
+method stop*(c: Crawler): Future[?!void] {.async.} =
   return success()
 
 proc new*(
@@ -102,7 +112,7 @@ proc new*(
     # nokNodes: List,
     config: Config,
 ): Crawler =
-  raiseAssert("todo")
-  # Crawler(
-  #   dht: dht, todoNodes: todoNodes, okNodes: okNodes, nokNodes: nokNodes, config: config
-  # )
+  Crawler(
+    dht: dht,
+    config: config, # todoNodes: todoNodes, okNodes: okNodes, nokNodes: nokNodes, 
+  )

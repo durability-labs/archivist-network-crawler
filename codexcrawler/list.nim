@@ -8,14 +8,13 @@ import pkg/stew/endians2
 import pkg/questionable
 import pkg/questionable/results
 import pkg/stint
-import pkg/codexdht
 
 import std/sets
-import std/strutils
 import std/sequtils
 import std/os
 
 import ./nodeentry
+import ./types
 
 logScope:
   topics = "list"
@@ -36,7 +35,7 @@ proc encode(s: NodeEntry): seq[byte] =
 
 proc decode(T: type NodeEntry, bytes: seq[byte]): ?!T =
   if bytes.len < 1:
-    return success(NodeEntry(id: UInt256.fromHex("0"), lastVisit: 0.uint64))
+    return success(NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64))
   return NodeEntry.fromBytes(bytes)
 
 proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
@@ -46,6 +45,10 @@ proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
   return success()
 
 proc load*(this: List): Future[?!void] {.async.} =
+  let id = Nid.fromStr("0")
+  let bytes = newSeq[byte]()
+  let ne = NodeEntry.fromBytes(bytes)
+
   without queryKey =? Key.init(this.name), err:
     return failure(err)
   without iter =? (await query[NodeEntry](this.store, Query.init(queryKey))), err:
@@ -68,7 +71,7 @@ proc new*(
 ): List =
   List(name: name, store: store, onMetric: onMetric)
 
-proc contains*(this: List, nodeId: NodeId): bool =
+proc contains*(this: List, nodeId: Nid): bool =
   this.items.anyIt(it.id == nodeId)
 
 proc contains*(this: List, item: NodeEntry): bool =
@@ -81,9 +84,9 @@ proc add*(this: List, item: NodeEntry): Future[?!void] {.async.} =
   this.items.add(item)
   this.onMetric(this.items.len.int64)
 
-  if isSome(this.emptySignal):
+  if s =? this.emptySignal:
     trace "List no longer empty.", name = this.name
-    this.emptySignal.get().complete()
+    s.complete()
     this.emptySignal = Future[void].none
 
   if err =? (await this.saveItem(item)).errorOption:
@@ -104,8 +107,9 @@ proc remove*(this: List, item: NodeEntry): Future[?!void] {.async.} =
 proc pop*(this: List): Future[?!NodeEntry] {.async.} =
   if this.items.len < 1:
     trace "List is empty. Waiting for new items...", name = this.name
-    this.emptySignal = some(newFuture[void]("list.emptySignal"))
-    await this.emptySignal.get().wait(1.hours)
+    let signal = newFuture[void]("list.emptySignal")
+    this.emptySignal = some(signal)
+    await signal.wait(1.hours)
     if this.items.len < 1:
       return failure(this.name & "List is empty.")
 

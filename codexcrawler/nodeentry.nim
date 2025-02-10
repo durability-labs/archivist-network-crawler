@@ -1,13 +1,11 @@
-import pkg/stew/byteutils
-import pkg/stew/endians2
-import pkg/questionable
 import pkg/questionable/results
-import pkg/codexdht
 import pkg/chronos
 import pkg/libp2p
 
+import ./types
+
 type NodeEntry* = object
-  id*: NodeId
+  id*: Nid
   lastVisit*: uint64
 
 proc `$`*(entry: NodeEntry): string =
@@ -32,4 +30,4 @@ proc fromBytes*(_: type NodeEntry, data: openArray[byte]): ?!NodeEntry =
   if buffer.getField(2, lastVisit).isErr:
     return failure("Unable to decode `lastVisit`")
 
-  return success(NodeEntry(id: UInt256.fromHex(idStr), lastVisit: lastVisit))
+  return success(NodeEntry(id: Nid.fromStr(idStr), lastVisit: lastVisit))

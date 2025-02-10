@@ -8,6 +8,7 @@ import ../list
 import ../nodeentry
 import ../config
 import ../component
+import ../state
 
 logScope:
   topics = "timetracker"
@@ -45,18 +46,18 @@ proc step(t: TimeTracker) {.async.} =
 proc worker(t: TimeTracker) {.async.} =
   try:
     while true:
-      await t.step()
+      # await t.step()
       await sleepAsync(t.workerDelay.minutes)
   except Exception as exc:
     error "Exception in timetracker worker", msg = exc.msg
     quit QuitFailure
 
-proc start*(t: TimeTracker): Future[?!void] {.async.} =
+method start*(t: TimeTracker, state: State): Future[?!void] {.async.} =
   info "Starting timetracker...", revisitDelayMins = $t.workerDelay
   asyncSpawn t.worker()
   return success()
 
-proc stop*(t: TimeTracker): Future[?!void] {.async.} =
+method stop*(t: TimeTracker): Future[?!void] {.async.} =
   return success()
 
 proc new*(
@@ -66,15 +67,14 @@ proc new*(
     # nokNodes: List,
     config: Config,
 ): TimeTracker =
-  raiseAssert("todo")
-  # var delay = config.revisitDelayMins div 10
-  # if delay < 1:
-  #   delay = 1
+  var delay = config.revisitDelayMins div 10
+  if delay < 1:
+    delay = 1
 
-  # TimeTracker(
-  #   todoNodes: todoNodes,
-  #   okNodes: okNodes,
-  #   nokNodes: nokNodes,
-  #   config: config,
-  #   workerDelay: delay,
-  # )
+  TimeTracker(
+    # todoNodes: todoNodes,
+    # okNodes: okNodes,
+    # nokNodes: nokNodes,
+    config: config,
+    workerDelay: delay,
+  )
