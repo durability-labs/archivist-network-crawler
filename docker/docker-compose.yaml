@@ -1,6 +1,8 @@
 services:
   crawler1:
-    build: crawler.Dockerfile
+    build:
+      context: ..
+      dockerfile: ./docker/crawler.Dockerfile
     environment:
       - CRAWLER_LOGLEVEL=TRACE
       # - CRAWLER_PUBLICIP= Set to override CURL to ip.codex.storage
