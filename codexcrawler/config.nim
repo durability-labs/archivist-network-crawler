@@ -13,8 +13,8 @@ Usage:
   codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--stepDelay=<ms>] [--revisitDelay=<m>]
 
 Options:
-  --logLevel=<l>          Sets log level [default: TRACE]
   --publicIp=<a>          Public IP address where this instance is reachable.
+  --logLevel=<l>          Sets log level [default: INFO]
   --metricsAddress=<ip>   Listen address of the metrics server [default: 0.0.0.0]
   --metricsPort=<p>       Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>         Directory for storing data [default: crawler_data]
