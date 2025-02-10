@@ -6,6 +6,7 @@ description = "Crawler for Codex networks"
 license = "MIT"
 skipDirs = @["tests"]
 bin = @["codexcrawler"]
+binDir = "build"
 
 # Dependencies
 requires "secp256k1#2acbbdcc0e63002a013fff49f015708522875832" # >= 0.5.2 & < 0.6.0
