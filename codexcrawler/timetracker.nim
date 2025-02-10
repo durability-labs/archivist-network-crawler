@@ -8,8 +8,6 @@ import ./list
 import ./nodeentry
 import ./config
 
-import std/sequtils
-
 logScope:
   topics = "timetracker"
 
@@ -24,10 +22,12 @@ proc processList(t: TimeTracker, list: List, expiry: uint64) {.async.} =
   var toMove = newSeq[NodeEntry]()
   proc onItem(item: NodeEntry) =
     if item.lastVisit < expiry:
-      trace "expired node, moving to todo"
       toMove.add(item)
 
   await list.iterateAll(onItem)
+
+  if toMove.len > 0:
+    trace "expired node, moving to todo", nodes = $toMove.len
 
   for item in toMove:
     if err =? (await t.todoNodes.add(item)).errorOption:
@@ -51,7 +51,7 @@ proc worker(t: TimeTracker) {.async.} =
     quit QuitFailure
 
 proc start*(t: TimeTracker): Future[?!void] {.async.} =
-  info "Starting timetracker..."
+  info "Starting timetracker...", revisitDelayMins = $t.workerDelay
   asyncSpawn t.worker()
   return success()
 

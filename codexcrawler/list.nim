@@ -29,6 +29,7 @@ type
     store: TypedDatastore
     items: seq[NodeEntry]
     onMetric: OnUpdateMetric
+    emptySignal: ?Future[void]
 
 proc encode(s: NodeEntry): seq[byte] =
   s.toBytes()
@@ -80,6 +81,11 @@ proc add*(this: List, item: NodeEntry): Future[?!void] {.async.} =
   this.items.add(item)
   this.onMetric(this.items.len.int64)
 
+  if isSome(this.emptySignal):
+    trace "List no longer empty.", name = this.name
+    this.emptySignal.get().complete()
+    this.emptySignal = Future[void].none
+
   if err =? (await this.saveItem(item)).errorOption:
     return failure(err)
   return success()
@@ -97,7 +103,11 @@ proc remove*(this: List, item: NodeEntry): Future[?!void] {.async.} =
 
 proc pop*(this: List): Future[?!NodeEntry] {.async.} =
   if this.items.len < 1:
-    return failure(this.name & "List is empty.")
+    trace "List is empty. Waiting for new items...", name = this.name
+    this.emptySignal = some(newFuture[void]("list.emptySignal"))
+    await this.emptySignal.get().wait(1.hours)
+    if this.items.len < 1:
+      return failure(this.name & "List is empty.")
 
   let item = this.items[0]
 

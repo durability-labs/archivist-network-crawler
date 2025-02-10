@@ -54,15 +54,19 @@ proc step(c: Crawler) {.async.} =
   target.lastVisit = Moment.now().epochSeconds.uint64
 
   without receivedNodes =? (await c.dht.getNeighbors(target.id)), err:
-    trace "Call failed", node = $target.id, err = err.msg
     await c.handleNodeNotOk(target)
     return
 
   let newNodes = receivedNodes.filterIt(isNew(c, it))
+  if newNodes.len > 0:
+    trace "Discovered new nodes", newNodes = newNodes.len
 
-  trace "Received nodes", receivedNodes = receivedNodes.len, newNodes = newNodes.len
   await c.handleNodeOk(target)
   await c.addNewTodoNodes(newNodes)
+
+  # Don't log the status every loop:
+  if (c.todoNodes.len mod 10) == 0:
+    trace "Status"
 
 proc worker(c: Crawler) {.async.} =
   try:
@@ -82,7 +86,7 @@ proc start*(c: Crawler): Future[?!void] {.async.} =
         error "Failed to add routing-table node to todo-list", err = err.msg
         return failure(err)
 
-  info "Starting crawler..."
+  info "Starting crawler...", stepDelayMs = $c.config.stepDelayMs
   asyncSpawn c.worker()
   return success()
 
