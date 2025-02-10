@@ -27,7 +27,7 @@ Options:
 import strutils
 import docopt
 
-type CrawlerConfig* = ref object
+type Config* = ref object
   logLevel*: string
   publicIp*: string
   metricsAddress*: IpAddress
@@ -38,8 +38,8 @@ type CrawlerConfig* = ref object
   stepDelayMs*: int
   revisitDelayMins*: int
 
-proc `$`*(config: CrawlerConfig): string =
-  "CrawlerConfig:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
+proc `$`*(config: Config): string =
+  "Crawler:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
     " metricsAddress=" & $config.metricsAddress & " metricsPort=" & $config.metricsPort &
     " dataDir=" & config.dataDir & " discPort=" & $config.discPort & " bootNodes=" &
     config.bootNodes.mapIt($it).join(";") & " stepDelay=" & $config.stepDelayMs &
@@ -81,13 +81,13 @@ proc stringToSpr(uri: string): SignedPeerRecord =
 proc getBootNodes(input: string): seq[SignedPeerRecord] =
   getBootNodeStrings(input).mapIt(stringToSpr(it))
 
-proc parseConfig*(): CrawlerConfig =
+proc parseConfig*(): Config =
   let args = docopt(doc, version = crawlerFullVersion)
 
   proc get(name: string): string =
     $args[name]
 
-  return CrawlerConfig(
+  return Config(
     logLevel: get("--logLevel"),
     publicIp: get("--publicIp"),
     metricsAddress: parseIpAddress(get("--metricsAddress")),

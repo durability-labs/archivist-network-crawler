@@ -4,18 +4,19 @@ import pkg/questionable
 import pkg/questionable/results
 
 import ./dht
-import ./list
-import ./nodeentry
-import ./config
+import ../list
+import ../nodeentry
+import ../config
+import ../component
 
 import std/sequtils
 
 logScope:
   topics = "crawler"
 
-type Crawler* = ref object
+type Crawler* = ref object of Component
   dht: Dht
-  config: CrawlerConfig
+  config: Config
   todoNodes: List
   okNodes: List
   nokNodes: List
@@ -90,14 +91,18 @@ proc start*(c: Crawler): Future[?!void] {.async.} =
   asyncSpawn c.worker()
   return success()
 
+proc stop*(c: Crawler): Future[?!void] {.async.} =
+  return success()
+
 proc new*(
     T: type Crawler,
     dht: Dht,
-    todoNodes: List,
-    okNodes: List,
-    nokNodes: List,
-    config: CrawlerConfig,
+    # todoNodes: List,
+    # okNodes: List,
+    # nokNodes: List,
+    config: Config,
 ): Crawler =
-  Crawler(
-    dht: dht, todoNodes: todoNodes, okNodes: okNodes, nokNodes: nokNodes, config: config
-  )
+  raiseAssert("todo")
+  # Crawler(
+  #   dht: dht, todoNodes: todoNodes, okNodes: okNodes, nokNodes: nokNodes, config: config
+  # )

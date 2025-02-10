@@ -7,14 +7,15 @@ import pkg/questionable/results
 import pkg/codexdht/discv5/[routing_table, protocol as discv5]
 from pkg/nimcrypto import keccak256
 
-import ./utils/rng
+import ../utils/rng
+import ../component
 
 export discv5
 
 logScope:
   topics = "dht"
 
-type Dht* = ref object
+type Dht* = ref object of Component
   protocol*: discv5.Protocol
   key: PrivateKey
   peerId: PeerId
@@ -96,12 +97,14 @@ proc updateDhtRecord*(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
-proc start*(d: Dht) {.async.} =
+proc start*(d: Dht): Future[?!void] {.async.} =
   d.protocol.open()
   await d.protocol.start()
+  return success()
 
-proc stop*(d: Dht) {.async.} =
+proc stop*(d: Dht): Future[?!void] {.async.} =
   await d.protocol.closeWait()
+  return success()
 
 proc new*(
     T: type Dht,

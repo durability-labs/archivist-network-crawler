@@ -4,15 +4,16 @@ import pkg/questionable
 import pkg/questionable/results
 
 import ./dht
-import ./list
-import ./nodeentry
-import ./config
+import ../list
+import ../nodeentry
+import ../config
+import ../component
 
 logScope:
   topics = "timetracker"
 
-type TimeTracker* = ref object
-  config: CrawlerConfig
+type TimeTracker* = ref object of Component
+  config: Config
   todoNodes: List
   okNodes: List
   nokNodes: List
@@ -55,21 +56,25 @@ proc start*(t: TimeTracker): Future[?!void] {.async.} =
   asyncSpawn t.worker()
   return success()
 
+proc stop*(t: TimeTracker): Future[?!void] {.async.} =
+  return success()
+
 proc new*(
     T: type TimeTracker,
-    todoNodes: List,
-    okNodes: List,
-    nokNodes: List,
-    config: CrawlerConfig,
+    # todoNodes: List,
+    # okNodes: List,
+    # nokNodes: List,
+    config: Config,
 ): TimeTracker =
-  var delay = config.revisitDelayMins div 10
-  if delay < 1:
-    delay = 1
+  raiseAssert("todo")
+  # var delay = config.revisitDelayMins div 10
+  # if delay < 1:
+  #   delay = 1
 
-  TimeTracker(
-    todoNodes: todoNodes,
-    okNodes: okNodes,
-    nokNodes: nokNodes,
-    config: config,
-    workerDelay: delay,
-  )
+  # TimeTracker(
+  #   todoNodes: todoNodes,
+  #   okNodes: okNodes,
+  #   nokNodes: nokNodes,
+  #   config: config,
+  #   workerDelay: delay,
+  # )

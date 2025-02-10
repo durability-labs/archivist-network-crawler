@@ -4,18 +4,16 @@ import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 
-import pkg/datastore
-import pkg/datastore/typedds
 import pkg/metrics
 
 import ./config
 import ./utils/logging
 import ./metrics
 import ./list
-import ./dht
-import ./utils/keyutils
-import ./crawler
-import ./timetracker
+import ./utils/datastoreutils
+import ./installer
+import ./state
+import ./component
 
 declareGauge(todoNodesGauge, "DHT nodes to be visited")
 declareGauge(okNodesGauge, "DHT nodes successfully contacted")
@@ -29,27 +27,13 @@ type
 
   Application* = ref object
     status: ApplicationStatus
-    config*: CrawlerConfig
+    config*: Config
     todoNodes*: List
     okNodes*: List
     nokNodes*: List
-    dht*: Dht
-    crawler*: Crawler
-    timeTracker*: TimeTracker
-
-proc createDatastore(app: Application, path: string): ?!Datastore =
-  without store =? LevelDbDatastore.new(path), err:
-    error "Failed to create datastore"
-    return failure(err)
-  return success(Datastore(store))
-
-proc createTypedDatastore(app: Application, path: string): ?!TypedDatastore =
-  without store =? app.createDatastore(path), err:
-    return failure(err)
-  return success(TypedDatastore.init(store))
 
 proc initializeLists(app: Application): Future[?!void] {.async.} =
-  without store =? app.createTypedDatastore(app.config.dataDir / "lists"), err:
+  without store =? createTypedDatastore(app.config.dataDir / "lists"), err:
     return failure(err)
 
   # We can't extract this into a function because gauges cannot be passed as argument.
@@ -76,71 +60,41 @@ proc initializeLists(app: Application): Future[?!void] {.async.} =
 
   return success()
 
-proc initializeDht(app: Application): Future[?!void] {.async.} =
-  without dhtStore =? app.createDatastore(app.config.dataDir / "dht"), err:
-    return failure(err)
-  let keyPath = app.config.dataDir / "privatekey"
-  without privateKey =? setupKey(keyPath), err:
-    return failure(err)
-
-  var listenAddresses = newSeq[MultiAddress]()
-  # TODO: when p2p connections are supported:
-  # let aaa = MultiAddress.init("/ip4/" & app.config.publicIp & "/tcp/53678").expect("Should init multiaddress")
-  # listenAddresses.add(aaa)
-
-  var discAddresses = newSeq[MultiAddress]()
-  let bbb = MultiAddress
-    .init("/ip4/" & app.config.publicIp & "/udp/" & $app.config.discPort)
-    .expect("Should init multiaddress")
-  discAddresses.add(bbb)
-
-  app.dht = Dht.new(
-    privateKey,
-    bindPort = app.config.discPort,
-    announceAddrs = listenAddresses,
-    bootstrapNodes = app.config.bootNodes,
-    store = dhtStore,
-  )
-
-  app.dht.updateAnnounceRecord(listenAddresses)
-  app.dht.updateDhtRecord(discAddresses)
-
-  await app.dht.start()
-
-  return success()
-
-proc initializeCrawler(app: Application): Future[?!void] {.async.} =
-  app.crawler =
-    Crawler.new(app.dht, app.todoNodes, app.okNodes, app.nokNodes, app.config)
-  return await app.crawler.start()
-
-proc initializeTimeTracker(app: Application): Future[?!void] {.async.} =
-  app.timeTracker =
-    TimeTracker.new(app.todoNodes, app.okNodes, app.nokNodes, app.config)
-  return await app.timeTracker.start()
-
 proc initializeApp(app: Application): Future[?!void] {.async.} =
   if err =? (await app.initializeLists()).errorOption:
     error "Failed to initialize lists", err = err.msg
     return failure(err)
 
-  if err =? (await app.initializeDht()).errorOption:
-    error "Failed to initialize DHT", err = err.msg
+  # if err =? (await app.initializeDht()).errorOption:
+  #   error "Failed to initialize DHT", err = err.msg
+  #   return failure(err)
+
+  # if err =? (await app.initializeCrawler()).errorOption:
+  #   error "Failed to initialize crawler", err = err.msg
+  #   return failure(err)
+
+  # if err =? (await app.initializeTimeTracker()).errorOption:
+  #   error "Failed to initialize timetracker", err = err.msg
+  #   return failure(err)
+
+  without components =? (await createComponents(app.config)), err:
+    error "Failed to create componenents", err = err.msg
     return failure(err)
 
-  if err =? (await app.initializeCrawler()).errorOption:
-    error "Failed to initialize crawler", err = err.msg
-    return failure(err)
+  # todo move this
+  let state = State(
+    config: app.config
+  )
 
-  if err =? (await app.initializeTimeTracker()).errorOption:
-    error "Failed to initialize timetracker", err = err.msg
-    return failure(err)
+  for c in components:
+    if err =? (await c.start(state)).errorOption:
+      error "Failed to start component", err = err.msg
 
   return success()
 
 proc stop*(app: Application) =
   app.status = ApplicationStatus.Stopping
-  waitFor app.dht.stop()
+  # waitFor app.dht.stop()
 
 proc run*(app: Application) =
   app.config = parseConfig()
