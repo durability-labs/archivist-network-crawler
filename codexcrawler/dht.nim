@@ -7,7 +7,7 @@ import pkg/questionable/results
 import pkg/codexdht/discv5/[routing_table, protocol as discv5]
 from pkg/nimcrypto import keccak256
 
-import ./rng
+import ./utils/rng
 
 export discv5
 

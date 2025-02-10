@@ -1,5 +1,4 @@
 import std/os
-import std/sequtils
 import pkg/chronicles
 import pkg/chronos
 import pkg/questionable
@@ -10,11 +9,11 @@ import pkg/datastore/typedds
 import pkg/metrics
 
 import ./config
-import ./logging
+import ./utils/logging
 import ./metrics
 import ./list
 import ./dht
-import ./keyutils
+import ./utils/keyutils
 import ./crawler
 import ./timetracker
 
