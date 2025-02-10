@@ -11,6 +11,7 @@ from pkg/nimcrypto import keccak256
 import ../utils/keyutils
 import ../utils/datastoreutils
 import ../utils/rng
+import ../utils/asyncdataevent
 import ../component
 import ../config
 import ../state
@@ -44,9 +45,9 @@ proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
   let node = d.protocol.getNode(nodeId)
   if node.isSome():
     return success(node.get())
-  return failure("Node not found for id: " & $nodeId)
+  return failure("Node not found for id: " & $(NodeId(nodeId)))
 
-proc getRoutingTableNodeIds*(d: Dht): seq[NodeId] =
+proc getRoutingTableNodeIds(d: Dht): seq[NodeId] =
   var ids = newSeq[NodeId]()
   for bucket in d.protocol.routingTable.buckets:
     for node in bucket.nodes:
@@ -82,7 +83,7 @@ method removeProvider*(d: Dht, peerId: PeerId): Future[void] {.base, gcsafe.} =
   trace "Removing provider", peerId
   d.protocol.removeProvidersLocal(peerId)
 
-proc updateAnnounceRecord*(d: Dht, addrs: openArray[MultiAddress]) =
+proc updateAnnounceRecord(d: Dht, addrs: openArray[MultiAddress]) =
   d.announceAddrs = @addrs
 
   trace "Updating announce record", addrs = d.announceAddrs
@@ -93,7 +94,7 @@ proc updateAnnounceRecord*(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.providerRecord).expect("Should update SPR")
 
-proc updateDhtRecord*(d: Dht, addrs: openArray[MultiAddress]) =
+proc updateDhtRecord(d: Dht, addrs: openArray[MultiAddress]) =
   trace "Updating Dht record", addrs = addrs
   d.dhtRecord = SignedPeerRecord
     .init(d.key, PeerRecord.init(d.peerId, @addrs))
@@ -102,9 +103,19 @@ proc updateDhtRecord*(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
+proc findRoutingTableNodes(d: Dht, state: State) {.async.} =
+  await sleepAsync(5.seconds)
+  let nodes = d.getRoutingTableNodeIds()
+
+  if err =? (await state.events.nodesFound.fire(nodes)).errorOption:
+    error "Failed to raise routing-table nodes as found nodes", err = err.msg
+  else:
+    trace "Routing table nodes raise as found nodes", num = nodes.len
+
 method start*(d: Dht, state: State): Future[?!void] {.async.} =
   d.protocol.open()
   await d.protocol.start()
+  asyncSpawn d.findRoutingTableNodes(state)
   return success()
 
 method stop*(d: Dht): Future[?!void] {.async.} =

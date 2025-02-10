@@ -66,19 +66,7 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
   if err =? (await app.initializeLists()).errorOption:
     error "Failed to initialize lists", err = err.msg
     return failure(err)
-
-  # if err =? (await app.initializeDht()).errorOption:
-  #   error "Failed to initialize DHT", err = err.msg
-  #   return failure(err)
-
-  # if err =? (await app.initializeCrawler()).errorOption:
-  #   error "Failed to initialize crawler", err = err.msg
-  #   return failure(err)
-
-  # if err =? (await app.initializeTimeTracker()).errorOption:
-  #   error "Failed to initialize timetracker", err = err.msg
-  #   return failure(err)
-
+  
   without components =? (await createComponents(app.config)), err:
     error "Failed to create componenents", err = err.msg
     return failure(err)

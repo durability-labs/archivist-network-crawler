@@ -5,7 +5,6 @@ import pkg/questionable/results
 
 import ./dht
 import ../list
-import ../nodeentry
 import ../config
 import ../component
 import ../state
@@ -20,28 +19,28 @@ type TimeTracker* = ref object of Component
   nokNodes: List
   workerDelay: int
 
-proc processList(t: TimeTracker, list: List, expiry: uint64) {.async.} =
-  var toMove = newSeq[NodeEntry]()
-  proc onItem(item: NodeEntry) =
-    if item.lastVisit < expiry:
-      toMove.add(item)
+# # proc processList(t: TimeTracker, list: List, expiry: uint64) {.async.} =
+# #   var toMove = newSeq[NodeEntry]()
+# #   proc onItem(item: NodeEntry) =
+# #     if item.lastVisit < expiry:
+# #       toMove.add(item)
 
-  await list.iterateAll(onItem)
+# #   await list.iterateAll(onItem)
 
-  if toMove.len > 0:
-    trace "expired node, moving to todo", nodes = $toMove.len
+# #   if toMove.len > 0:
+# #     trace "expired node, moving to todo", nodes = $toMove.len
 
-  for item in toMove:
-    if err =? (await t.todoNodes.add(item)).errorOption:
-      error "Failed to add expired node to todo list", err = err.msg
-      return
-    if err =? (await list.remove(item)).errorOption:
-      error "Failed to remove expired node to source list", err = err.msg
+# #   for item in toMove:
+# #     if err =? (await t.todoNodes.add(item)).errorOption:
+# #       error "Failed to add expired node to todo list", err = err.msg
+# #       return
+# #     if err =? (await list.remove(item)).errorOption:
+# #       error "Failed to remove expired node to source list", err = err.msg
 
-proc step(t: TimeTracker) {.async.} =
-  let expiry = (Moment.now().epochSeconds - (t.config.revisitDelayMins * 60)).uint64
-  await t.processList(t.okNodes, expiry)
-  await t.processList(t.nokNodes, expiry)
+# proc step(t: TimeTracker) {.async.} =
+#   let expiry = (Moment.now().epochSeconds - (t.config.revisitDelayMins * 60)).uint64
+#   await t.processList(t.okNodes, expiry)
+#   await t.processList(t.nokNodes, expiry)
 
 proc worker(t: TimeTracker) {.async.} =
   try:

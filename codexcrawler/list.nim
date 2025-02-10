@@ -13,7 +13,6 @@ import std/sets
 import std/sequtils
 import std/os
 
-import ./nodeentry
 import ./types
 
 logScope:
@@ -21,25 +20,25 @@ logScope:
 
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
-  OnItem = proc(item: NodeEntry): void {.gcsafe, raises: [].}
+  OnItem = proc(item: Nid): void {.gcsafe, raises: [].}
 
   List* = ref object
     name: string
     store: TypedDatastore
-    items: seq[NodeEntry]
+    items: HashSet[Nid]
     onMetric: OnUpdateMetric
     emptySignal: ?Future[void]
 
-proc encode(s: NodeEntry): seq[byte] =
+proc encode(s: Nid): seq[byte] =
   s.toBytes()
 
-proc decode(T: type NodeEntry, bytes: seq[byte]): ?!T =
+proc decode(T: type Nid, bytes: seq[byte]): ?!T =
   if bytes.len < 1:
-    return success(NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64))
-  return NodeEntry.fromBytes(bytes)
+    return success(Nid.fromStr("0"))
+  return Nid.fromBytes(bytes)
 
-proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
-  without itemKey =? Key.init(this.name / $item.id), err:
+proc saveItem(this: List, item: Nid): Future[?!void] {.async.} =
+  without itemKey =? Key.init(this.name / $item), err:
     return failure(err)
   ?await this.store.put(itemKey, item)
   return success()
@@ -47,11 +46,11 @@ proc saveItem(this: List, item: NodeEntry): Future[?!void] {.async.} =
 proc load*(this: List): Future[?!void] {.async.} =
   let id = Nid.fromStr("0")
   let bytes = newSeq[byte]()
-  let ne = NodeEntry.fromBytes(bytes)
+  let ne = Nid.fromBytes(bytes)
 
   without queryKey =? Key.init(this.name), err:
     return failure(err)
-  without iter =? (await query[NodeEntry](this.store, Query.init(queryKey))), err:
+  without iter =? (await query[Nid](this.store, Query.init(queryKey))), err:
     return failure(err)
 
   while not iter.finished:
@@ -59,8 +58,8 @@ proc load*(this: List): Future[?!void] {.async.} =
       return failure(err)
     without value =? item.value, err:
       return failure(err)
-    if value.id > 0 or value.lastVisit > 0:
-      this.items.add(value)
+    if value > 0:
+      this.items.incl(value)
 
   this.onMetric(this.items.len.int64)
   info "Loaded list", name = this.name, items = this.items.len
@@ -71,40 +70,38 @@ proc new*(
 ): List =
   List(name: name, store: store, onMetric: onMetric)
 
-proc contains*(this: List, nodeId: Nid): bool =
-  this.items.anyIt(it.id == nodeId)
+proc contains*(this: List, nid: Nid): bool =
+  this.items.anyIt(it == nid)
 
-proc contains*(this: List, item: NodeEntry): bool =
-  this.contains(item.id)
-
-proc add*(this: List, item: NodeEntry): Future[?!void] {.async.} =
-  if this.contains(item):
+proc add*(this: List, nid: Nid): Future[?!void] {.async.} =
+  if this.contains(nid):
     return success()
 
-  this.items.add(item)
+  this.items.incl(nid)
   this.onMetric(this.items.len.int64)
+
+  if err =? (await this.saveItem(nid)).errorOption:
+    return failure(err)
 
   if s =? this.emptySignal:
     trace "List no longer empty.", name = this.name
     s.complete()
     this.emptySignal = Future[void].none
 
-  if err =? (await this.saveItem(item)).errorOption:
-    return failure(err)
   return success()
 
-proc remove*(this: List, item: NodeEntry): Future[?!void] {.async.} =
+proc remove*(this: List, nid: Nid): Future[?!void] {.async.} =
   if this.items.len < 1:
     return failure(this.name & "List is empty.")
 
-  this.items.keepItIf(item.id != it.id)
-  without itemKey =? Key.init(this.name / $item.id), err:
+  this.items.excl(nid)
+  without itemKey =? Key.init(this.name / $nid), err:
     return failure(err)
   ?await this.store.delete(itemKey)
   this.onMetric(this.items.len.int64)
   return success()
 
-proc pop*(this: List): Future[?!NodeEntry] {.async.} =
+proc pop*(this: List): Future[?!Nid] {.async.} =
   if this.items.len < 1:
     trace "List is empty. Waiting for new items...", name = this.name
     let signal = newFuture[void]("list.emptySignal")
@@ -113,7 +110,7 @@ proc pop*(this: List): Future[?!NodeEntry] {.async.} =
     if this.items.len < 1:
       return failure(this.name & "List is empty.")
 
-  let item = this.items[0]
+  let item = this.items.pop()
 
   if err =? (await this.remove(item)).errorOption:
     return failure(err)
