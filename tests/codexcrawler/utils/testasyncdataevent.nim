@@ -80,6 +80,10 @@ suite "AsyncDataEvent":
     await event.unsubscribe(s2)
     await event.unsubscribe(s3)
 
+  test "Can fire and event without subscribers":
+    check:
+      isOK(await event.fire(ExampleData(s: msg)))
+
   test "Can unsubscribe in handler":
     proc doNothing() {.async, closure.} =
       await sleepAsync(1.millis)

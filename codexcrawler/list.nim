@@ -23,7 +23,6 @@ type List* = ref object of RootObj
   name: string
   store: TypedDatastore
   items: HashSet[Nid]
-  emptySignal: ?Future[void]
 
 proc encode(s: Nid): seq[byte] =
   s.toBytes()
@@ -67,11 +66,6 @@ method add*(this: List, nid: Nid): Future[?!void] {.async, base.} =
 
   if err =? (await this.saveItem(nid)).errorOption:
     return failure(err)
-
-  if s =? this.emptySignal:
-    trace "List no longer empty.", name = this.name
-    s.complete()
-    this.emptySignal = Future[void].none
 
   return success()
 
