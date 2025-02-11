@@ -8,6 +8,7 @@ type MockState* = ref object of State
 
 proc createMockState*(): MockState =
   MockState(
+    status: ApplicationStatus.Running,
     config: Config(),
     events: Events(
       nodesFound: newAsyncDataEvent[seq[Nid]](),

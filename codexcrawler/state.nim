@@ -1,9 +1,13 @@
 import pkg/chronos
+import pkg/chronicles
 import pkg/questionable/results
 
 import ./config
 import ./utils/asyncdataevent
 import ./types
+
+logScope:
+  topics = "state"
 
 type
   OnStep = proc(): Future[?!void] {.async: (raises: []), gcsafe.}
@@ -18,10 +22,22 @@ type
     dhtNodeCheck*: AsyncDataEvent[DhtNodeCheckEventData]
     nodesExpired*: AsyncDataEvent[seq[Nid]]
 
+  ApplicationStatus* {.pure.} = enum
+    Stopped
+    Stopping
+    Running
+
   State* = ref object of RootObj
+    status*: ApplicationStatus
     config*: Config
     events*: Events
 
-proc whileRunning*(this: State, step: OnStep, delay: Duration) =
-  discard
-  #todo: while status == running, step(), asyncsleep duration
+proc whileRunning*(s: State, step: OnStep, delay: Duration) {.async.} =
+  proc worker(): Future[void] {.async.} =
+    while s.status == ApplicationStatus.Running:
+      if err =? (await step()).errorOption:
+        error "Failure-result caught in main loop. Stopping...", err = err.msg
+        s.status = ApplicationStatus.Stopping
+      await sleepAsync(delay)
+
+  asyncSpawn worker()

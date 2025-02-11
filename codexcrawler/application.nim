@@ -8,60 +8,19 @@ import pkg/metrics
 
 import ./config
 import ./utils/logging
-import ./metrics
-import ./list
-import ./utils/datastoreutils
 import ./utils/asyncdataevent
 import ./installer
 import ./state
 import ./component
 import ./types
 
-type
-  ApplicationStatus* {.pure.} = enum
-    Stopped
-    Stopping
-    Running
+type Application* = ref object
+  state: State
 
-  Application* = ref object
-    status: ApplicationStatus
-    config*: Config
-    todoNodes*: List
-    okNodes*: List
-    nokNodes*: List
-
-# proc initializeLists(app: Application): Future[?!void] {.async.} =
-#   without store =? createTypedDatastore(app.config.dataDir / "lists"), err:
-#     return failure(err)
-
-#   # We can't extract this into a function because gauges cannot be passed as argument.
-#   # The use of global state in nim-metrics is not pleasant.
-#   proc onTodoMetric(value: int64) =
-#     todoNodesGauge.set(value)
-
-#   proc onOkMetric(value: int64) =
-#     okNodesGauge.set(value)
-
-#   proc onNokMetric(value: int64) =
-#     nokNodesGauge.set(value)
-
-#   app.todoNodes = List.new("todo", store, onTodoMetric)
-#   app.okNodes = List.new("ok", store, onOkMetric)
-#   app.nokNodes = List.new("nok", store, onNokMetric)
-
-#   if err =? (await app.todoNodes.load()).errorOption:
-#     return failure(err)
-#   if err =? (await app.okNodes.load()).errorOption:
-#     return failure(err)
-#   if err =? (await app.nokNodes.load()).errorOption:
-#     return failure(err)
-
-#   return success()
-
-proc initializeApp(app: Application): Future[?!void] {.async.} =
-  # todo move this
+proc initializeApp(app: Application, config: Config): Future[?!void] {.async.} =
   let state = State(
-    config: app.config,
+    status: ApplicationStatus.Running,
+    config: config,
     events: Events(
       nodesFound: newAsyncDataEvent[seq[Nid]](),
       newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),
@@ -81,30 +40,29 @@ proc initializeApp(app: Application): Future[?!void] {.async.} =
   return success()
 
 proc stop*(app: Application) =
-  app.status = ApplicationStatus.Stopping
-  # waitFor app.dht.stop()
+  app.state.status = ApplicationStatus.Stopping
 
 proc run*(app: Application) =
-  app.config = parseConfig()
-  info "Loaded configuration", config = app.config
+  let config = parseConfig()
+  info "Loaded configuration", config = $config
 
   # Configure loglevel
-  updateLogLevel(app.config.logLevel)
+  updateLogLevel(config.logLevel)
 
   # Ensure datadir path exists:
-  if not existsDir(app.config.dataDir):
-    createDir(app.config.dataDir)
+  if not existsDir(config.dataDir):
+    createDir(config.dataDir)
 
   info "Metrics endpoint initialized"
 
   info "Starting application"
-  app.status = ApplicationStatus.Running
-  if err =? (waitFor app.initializeApp()).errorOption:
-    app.status = ApplicationStatus.Stopping
+  app.state.status = ApplicationStatus.Running
+  if err =? (waitFor app.initializeApp(config)).errorOption:
+    app.state.status = ApplicationStatus.Stopping
     error "Failed to start application", err = err.msg
     return
 
-  while app.status == ApplicationStatus.Running:
+  while app.state.status == ApplicationStatus.Running:
     try:
       chronos.poll()
     except Exception as exc:
