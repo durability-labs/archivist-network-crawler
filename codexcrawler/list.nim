@@ -1,6 +1,6 @@
+import std/os
 import pkg/chronos
 import pkg/chronicles
-import pkg/metrics
 import pkg/datastore
 import pkg/datastore/typedds
 import pkg/stew/byteutils
@@ -14,18 +14,16 @@ import std/sequtils
 import std/os
 
 import ./types
+import ./utils/datastoreutils
 
 logScope:
   topics = "list"
 
 type
-  OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
-
-  List* = ref object
+  List* = ref object of RootObj
     name: string
     store: TypedDatastore
     items: HashSet[Nid]
-    onMetric: OnUpdateMetric
     emptySignal: ?Future[void]
 
 proc encode(s: Nid): seq[byte] =
@@ -42,7 +40,7 @@ proc saveItem(this: List, item: Nid): Future[?!void] {.async.} =
   ?await this.store.put(itemKey, item)
   return success()
 
-proc load*(this: List): Future[?!void] {.async.} =
+method load*(this: List): Future[?!void] {.async, base.} =
   without queryKey =? Key.init(this.name), err:
     return failure(err)
   without iter =? (await query[Nid](this.store, Query.init(queryKey))), err:
@@ -56,24 +54,17 @@ proc load*(this: List): Future[?!void] {.async.} =
     if value > 0:
       this.items.incl(value)
 
-  this.onMetric(this.items.len.int64)
   info "Loaded list", name = this.name, items = this.items.len
   return success()
-
-proc new*(
-    _: type List, name: string, store: TypedDatastore, onMetric: OnUpdateMetric
-): List =
-  List(name: name, store: store, onMetric: onMetric)
 
 proc contains*(this: List, nid: Nid): bool =
   this.items.anyIt(it == nid)
 
-proc add*(this: List, nid: Nid): Future[?!void] {.async.} =
+method add*(this: List, nid: Nid): Future[?!void] {.async, base.} =
   if this.contains(nid):
     return success()
 
   this.items.incl(nid)
-  this.onMetric(this.items.len.int64)
 
   if err =? (await this.saveItem(nid)).errorOption:
     return failure(err)
@@ -85,7 +76,7 @@ proc add*(this: List, nid: Nid): Future[?!void] {.async.} =
 
   return success()
 
-proc remove*(this: List, nid: Nid): Future[?!void] {.async.} =
+method remove*(this: List, nid: Nid): Future[?!void] {.async, base.} =
   if this.items.len < 1:
     return failure(this.name & "List is empty.")
 
@@ -93,23 +84,17 @@ proc remove*(this: List, nid: Nid): Future[?!void] {.async.} =
   without itemKey =? Key.init(this.name / $nid), err:
     return failure(err)
   ?await this.store.delete(itemKey)
-  this.onMetric(this.items.len.int64)
   return success()
-
-proc pop*(this: List): Future[?!Nid] {.async.} =
-  if this.items.len < 1:
-    trace "List is empty. Waiting for new items...", name = this.name
-    let signal = newFuture[void]("list.emptySignal")
-    this.emptySignal = some(signal)
-    await signal.wait(1.hours)
-    if this.items.len < 1:
-      return failure(this.name & "List is empty.")
-
-  let item = this.items.pop()
-
-  if err =? (await this.remove(item)).errorOption:
-    return failure(err)
-  return success(item)
 
 proc len*(this: List): int =
   this.items.len
+
+proc new*(
+    _: type List, name: string, store: TypedDatastore
+): List =
+  List(name: name, store: store)
+
+proc createList*(dataDir: string, name: string): ?!List =
+  without store =? createTypedDatastore(dataDir / name), err:
+    return failure(err)
+  success(List.new(name, store))

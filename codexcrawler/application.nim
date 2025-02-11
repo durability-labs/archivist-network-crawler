@@ -17,10 +17,6 @@ import ./state
 import ./component
 import ./types
 
-declareGauge(todoNodesGauge, "DHT nodes to be visited")
-declareGauge(okNodesGauge, "DHT nodes successfully contacted")
-declareGauge(nokNodesGauge, "DHT nodes failed to contact")
-
 type
   ApplicationStatus* {.pure.} = enum
     Stopped
@@ -99,7 +95,6 @@ proc run*(app: Application) =
   if not existsDir(app.config.dataDir):
     createDir(app.config.dataDir)
 
-  setupMetrics(app.config.metricsAddress, app.config.metricsPort)
   info "Metrics endpoint initialized"
 
   info "Starting application"

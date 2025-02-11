@@ -2,6 +2,7 @@ import pkg/chronos
 import pkg/questionable/results
 
 import ./state
+import ./metrics
 import ./component
 import ./components/dht
 import ./components/crawler
@@ -16,6 +17,8 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
 
   without nodeStore =? createNodeStore(state), err:
     return failure(err)
+
+  let metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
 
   components.add(nodeStore)
   components.add(dht)
