@@ -9,7 +9,7 @@ declareGauge(nokNodesGauge, "DHT nodes failed to contact")
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
 
-  Metrics* = ref object
+  Metrics* = ref object of RootObj
     todoNodes: OnUpdateMetric
     okNodes: OnUpdateMetric
     nokNodes: OnUpdateMetric
@@ -25,13 +25,13 @@ proc startServer(metricsAddress: IpAddress, metricsPort: Port) =
   except Exception as exc:
     raiseAssert exc.msg # TODO fix metrics
 
-method setTodoNodes*(m: Metrics, value: int) {.base.} =
+method setTodoNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.todoNodes(value.int64)
 
-method setOkNodes*(m: Metrics, value: int) {.base.} =
+method setOkNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.okNodes(value.int64)
 
-method setNokNodes*(m: Metrics, value: int) {.base.} =
+method setNokNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.nokNodes(value.int64)
 
 proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
@@ -47,9 +47,5 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
 
   proc onNok(value: int64) =
     nokNodesGauge.set(value)
-  
-  return Metrics(
-    todoNodes: onTodo,
-    okNodes: onOk,
-    nokNodes: onNok
-  )
+
+  return Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok)

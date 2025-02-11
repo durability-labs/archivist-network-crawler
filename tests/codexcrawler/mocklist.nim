@@ -4,16 +4,17 @@ import pkg/questionable/results
 import ../../codexcrawler/types
 import ../../codexcrawler/list
 
-type
-  MockList* = ref object of List
-    loadCalled*: bool
-    added*: seq[Nid]
-    addSuccess*: bool
-    removed*: seq[Nid]
-    removeSuccess*: bool
+type MockList* = ref object of List
+  loadCalled*: bool
+  added*: seq[Nid]
+  addSuccess*: bool
+  removed*: seq[Nid]
+  removeSuccess*: bool
+  length*: int
 
 method load*(this: MockList): Future[?!void] {.async.} =
   this.loadCalled = true
+  return success()
 
 method add*(this: MockList, nid: Nid): Future[?!void] {.async.} =
   this.added.add(nid)
@@ -27,11 +28,15 @@ method remove*(this: MockList, nid: Nid): Future[?!void] {.async.} =
     return success()
   return failure("test failure")
 
+method len*(this: MockList): int =
+  return this.length
+
 proc createMockList*(): MockList =
   MockList(
     loadCalled: false,
     added: newSeq[Nid](),
     addSuccess: true,
     removed: newSeq[Nid](),
-    removeSuccess: true
+    removeSuccess: true,
+    length: 0,
   )

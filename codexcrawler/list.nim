@@ -19,12 +19,11 @@ import ./utils/datastoreutils
 logScope:
   topics = "list"
 
-type
-  List* = ref object of RootObj
-    name: string
-    store: TypedDatastore
-    items: HashSet[Nid]
-    emptySignal: ?Future[void]
+type List* = ref object of RootObj
+  name: string
+  store: TypedDatastore
+  items: HashSet[Nid]
+  emptySignal: ?Future[void]
 
 proc encode(s: Nid): seq[byte] =
   s.toBytes()
@@ -86,12 +85,10 @@ method remove*(this: List, nid: Nid): Future[?!void] {.async, base.} =
   ?await this.store.delete(itemKey)
   return success()
 
-proc len*(this: List): int =
+method len*(this: List): int {.base, gcsafe, raises: [].} =
   this.items.len
 
-proc new*(
-    _: type List, name: string, store: TypedDatastore
-): List =
+proc new*(_: type List, name: string, store: TypedDatastore): List =
   List(name: name, store: store)
 
 proc createList*(dataDir: string, name: string): ?!List =

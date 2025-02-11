@@ -1,8 +1,6 @@
-import std/os
 import pkg/chronos
 import pkg/questionable/results
 import pkg/asynctest/chronos/unittest
-import pkg/datastore/typedds
 
 import ../../../codexcrawler/components/dhtmetrics
 import ../../../codexcrawler/utils/asyncdataevent
@@ -10,6 +8,7 @@ import ../../../codexcrawler/types
 import ../../../codexcrawler/state
 import ../mockstate
 import ../mocklist
+import ../mockmetrics
 import ../helpers
 
 suite "DhtMetrics":
@@ -18,6 +17,7 @@ suite "DhtMetrics":
     state: MockState
     okList: MockList
     nokList: MockList
+    metrics: MockMetrics
     dhtmetrics: DhtMetrics
 
   setup:
@@ -25,12 +25,9 @@ suite "DhtMetrics":
     state = createMockState()
     okList = createMockList()
     nokList = createMockList()
+    metrics = createMockMetrics()
 
-    dhtmetrics = DhtMetrics.new(
-      state,
-      okList,
-      nokList
-    )
+    dhtmetrics = DhtMetrics.new(state, okList, nokList, metrics)
 
     (await dhtmetrics.start()).tryGet()
 
@@ -39,17 +36,11 @@ suite "DhtMetrics":
     state.checkAllUnsubscribed()
 
   proc fireDhtNodeCheckEvent(isOk: bool) {.async.} =
-    let
-      event = DhtNodeCheckEventData(
-        id: nid,
-        isOk: isOk
-      )
+    let event = DhtNodeCheckEventData(id: nid, isOk: isOk)
 
     (await state.events.dhtNodeCheck.fire(event)).tryGet()
 
   test "dhtmetrics start should load both lists":
-    (await dhtmetrics.start()).tryGet()
-
     check:
       okList.loadCalled
       nokList.loadCalled
@@ -58,13 +49,13 @@ suite "DhtMetrics":
     await fireDhtNodeCheckEvent(true)
 
     check:
-      nid in okList.added 
+      nid in okList.added
 
   test "dhtNodeCheck event should add node to nokList if check has failed":
     await fireDhtNodeCheckEvent(false)
 
     check:
-      nid in nokList.added 
+      nid in nokList.added
 
   test "dhtNodeCheck event should remove node from nokList if check is successful":
     await fireDhtNodeCheckEvent(true)
@@ -77,3 +68,23 @@ suite "DhtMetrics":
 
     check:
       nid in okList.removed
+
+  test "dhtNodeCheck event should set okList length as dht-ok metric":
+    let length = 123
+
+    okList.length = length
+
+    await fireDhtNodeCheckEvent(true)
+
+    check:
+      metrics.ok == length
+
+  test "dhtNodeCheck event should set nokList length as dht-nok metric":
+    let length = 234
+
+    nokList.length = length
+
+    await fireDhtNodeCheckEvent(true)
+
+    check:
+      metrics.nok == length
