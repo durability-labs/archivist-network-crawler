@@ -20,7 +20,6 @@ logScope:
 
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
-  OnItem = proc(item: Nid): void {.gcsafe, raises: [].}
 
   List* = ref object
     name: string
@@ -119,7 +118,3 @@ proc pop*(this: List): Future[?!Nid] {.async.} =
 proc len*(this: List): int =
   this.items.len
 
-proc iterateAll*(this: List, onItem: OnItem) {.async.} =
-  for item in this.items:
-    onItem(item)
-    await sleepAsync(1.millis)

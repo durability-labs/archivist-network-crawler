@@ -18,7 +18,7 @@ type
     dhtNodeCheck*: AsyncDataEvent[DhtNodeCheckEventData]
     nodesExpired*: AsyncDataEvent[seq[Nid]]
 
-  State* = ref object
+  State* = ref object of RootObj
     config*: Config
     events*: Events
 

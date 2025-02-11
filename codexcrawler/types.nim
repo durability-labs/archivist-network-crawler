@@ -1,5 +1,5 @@
 import pkg/stew/byteutils
-import pkg/stew/endians2
+import pkg/stint/io
 import pkg/questionable/results
 import pkg/codexdht
 import pkg/libp2p
@@ -7,7 +7,7 @@ import pkg/libp2p
 type Nid* = NodeId
 
 proc `$`*(nid: Nid): string =
-  $(NodeId(nid))
+  nid.toHex()
 
 proc fromStr*(T: type Nid, s: string): Nid =
   Nid(UInt256.fromHex(s))
