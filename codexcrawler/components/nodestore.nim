@@ -12,8 +12,7 @@ import ../state
 import ../utils/datastoreutils
 import ../utils/asyncdataevent
 
-const
-  nodestoreName = "nodestore"
+const nodestoreName = "nodestore"
 
 type
   NodeEntry* = object
@@ -66,12 +65,9 @@ proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
     return failure(err)
 
   if not exists:
-    let entry = NodeEntry(
-      id: nid,
-      lastVisit: 0
-    )
+    let entry = NodeEntry(id: nid, lastVisit: 0)
     ?await s.store.put(key, entry)
-  
+
   return success(not exists)
 
 proc fireNewNodesDiscovered(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
@@ -83,12 +79,12 @@ proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
   for nid in nids:
     without isNew =? (await s.storeNodeIsNew(nid)), err:
       return failure(err)
-    
+
     if isNew:
       newNodes.add(nid)
 
   if newNodes.len > 0:
-    ? await s.fireNewNodesDiscovered(newNodes)
+    ?await s.fireNewNodesDiscovered(newNodes)
   return success()
 
 proc iterateAll*(s: NodeStore, onNode: OnNodeEntry): Future[?!void] {.async.} =
@@ -102,10 +98,10 @@ proc iterateAll*(s: NodeStore, onNode: OnNodeEntry): Future[?!void] {.async.} =
       return failure(err)
     without value =? item.value, err:
       return failure(err)
-    
+
     ?await onNode(value)
   return success()
-  
+
 method start*(s: NodeStore): Future[?!void] {.async.} =
   info "Starting nodestore..."
 
@@ -119,15 +115,8 @@ method stop*(s: NodeStore): Future[?!void] {.async.} =
   await s.state.events.nodesFound.unsubscribe(s.sub)
   return success()
 
-proc new*(
-    T: type NodeStore,
-    state: State,
-    store: TypedDatastore
-): NodeStore =
-  NodeStore(
-    state: state,
-    store: store
-  )
+proc new*(T: type NodeStore, state: State, store: TypedDatastore): NodeStore =
+  NodeStore(state: state, store: store)
 
 proc createNodeStore*(state: State): ?!NodeStore =
   without ds =? createTypedDatastore(state.config.dataDir / "nodestore"), err:

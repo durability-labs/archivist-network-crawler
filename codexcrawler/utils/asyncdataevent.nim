@@ -22,7 +22,9 @@ proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
     queue: newAsyncEventQueue[?T](), subscriptions: newSeq[AsyncDataEventSubscription]()
   )
 
-proc performUnsubscribe[T](event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription) {.async.} =
+proc performUnsubscribe[T](
+    event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription
+) {.async.} =
   if subscription in event.subscriptions:
     await subscription.listenFuture.cancelAndWait()
     event.subscriptions.delete(event.subscriptions.find(subscription))
@@ -35,7 +37,7 @@ proc subscribe*[T](
     listenFuture: newFuture[void](),
     fireEvent: newAsyncEvent(),
     inHandler: false,
-    delayedUnsubscribe: false
+    delayedUnsubscribe: false,
   )
 
   proc listener() {.async.} =
@@ -62,7 +64,7 @@ proc fire*[T](event: AsyncDataEvent[T], data: T): Future[?!void] {.async.} =
       return failure(err)
     if sub.delayedUnsubscribe:
       toUnsubscribe.add(sub)
-  
+
   for sub in toUnsubscribe:
     await event.unsubscribe(sub)
 

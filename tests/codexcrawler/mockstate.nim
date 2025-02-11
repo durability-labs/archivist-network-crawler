@@ -4,11 +4,7 @@ import ../../codexcrawler/utils/asyncdataevent
 import ../../codexcrawler/types
 import ../../codexcrawler/config
 
-type
-  MockState* = ref object of State
-    # config*: Config
-    # events*: Events
-
+type MockState* = ref object of State
 
 proc createMockState*(): MockState =
   MockState(

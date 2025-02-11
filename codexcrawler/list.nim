@@ -113,4 +113,3 @@ proc pop*(this: List): Future[?!Nid] {.async.} =
 
 proc len*(this: List): int =
   this.items.len
-

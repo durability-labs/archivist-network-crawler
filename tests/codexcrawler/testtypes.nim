@@ -21,5 +21,3 @@ suite "Types":
 
     check:
       nid == Nid.fromBytes(bytes).tryGet()
-      
-    
