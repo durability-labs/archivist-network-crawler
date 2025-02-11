@@ -1,79 +1,49 @@
 import pkg/chronicles
 import pkg/chronos
-import pkg/questionable
 import pkg/questionable/results
 
-import ./dht
-import ../list
-import ../config
+import ./nodestore
 import ../component
 import ../state
+import ../types
+import ../utils/asyncdataevent
 
 logScope:
   topics = "timetracker"
 
 type TimeTracker* = ref object of Component
-  config: Config
-  todoNodes: List
-  okNodes: List
-  nokNodes: List
-  workerDelay: int
+  state: State
+  nodestore: NodeStore
 
-# # proc processList(t: TimeTracker, list: List, expiry: uint64) {.async.} =
-# #   var toMove = newSeq[NodeEntry]()
-# #   proc onItem(item: NodeEntry) =
-# #     if item.lastVisit < expiry:
-# #       toMove.add(item)
+proc step(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
+  let expiry =
+    (Moment.now().epochSeconds - (t.state.config.revisitDelayMins * 60)).uint64
 
-# #   await list.iterateAll(onItem)
+  var expired = newSeq[Nid]()
+  proc checkNode(item: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
+    if item.lastVisit < expiry:
+      expired.add(item.id)
+    return success()
 
-# #   if toMove.len > 0:
-# #     trace "expired node, moving to todo", nodes = $toMove.len
-
-# #   for item in toMove:
-# #     if err =? (await t.todoNodes.add(item)).errorOption:
-# #       error "Failed to add expired node to todo list", err = err.msg
-# #       return
-# #     if err =? (await list.remove(item)).errorOption:
-# #       error "Failed to remove expired node to source list", err = err.msg
-
-# proc step(t: TimeTracker) {.async.} =
-#   let expiry = (Moment.now().epochSeconds - (t.config.revisitDelayMins * 60)).uint64
-#   await t.processList(t.okNodes, expiry)
-#   await t.processList(t.nokNodes, expiry)
-
-proc worker(t: TimeTracker) {.async.} =
-  try:
-    while true:
-      # await t.step()
-      await sleepAsync(t.workerDelay.minutes)
-  except Exception as exc:
-    error "Exception in timetracker worker", msg = exc.msg
-    quit QuitFailure
+  ?await t.nodestore.iterateAll(checkNode)
+  ?await t.state.events.nodesExpired.fire(expired)
+  return success()
 
 method start*(t: TimeTracker): Future[?!void] {.async.} =
-  info "Starting timetracker...", revisitDelayMins = $t.workerDelay
-  asyncSpawn t.worker()
+  info "Starting timetracker..."
+
+  proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
+    await t.step()
+
+  var delay = t.state.config.revisitDelayMins div 100
+  if delay < 1:
+    delay = 1
+
+  await t.state.whileRunning(onStep, delay.minutes)
   return success()
 
 method stop*(t: TimeTracker): Future[?!void] {.async.} =
   return success()
 
-proc new*(
-    T: type TimeTracker,
-    # todoNodes: List,
-    # okNodes: List,
-    # nokNodes: List,
-    config: Config,
-): TimeTracker =
-  var delay = config.revisitDelayMins div 10
-  if delay < 1:
-    delay = 1
-
-  TimeTracker(
-    # todoNodes: todoNodes,
-    # okNodes: okNodes,
-    # nokNodes: nokNodes,
-    config: config,
-    workerDelay: delay,
-  )
+proc new*(T: type TimeTracker, state: State, nodestore: NodeStore): TimeTracker =
+  TimeTracker(state: state, nodestore: nodestore)

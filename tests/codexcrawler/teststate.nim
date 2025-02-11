@@ -3,14 +3,24 @@ import pkg/questionable/results
 import pkg/asynctest/chronos/unittest
 
 import ../../codexcrawler/state
-import ./mockstate
+import ../../codexcrawler/config
+import ../../codexcrawler/types
+import ../../codexcrawler/utils/asyncdataevent
 
 suite "State":
   var state: State
 
   setup:
-    # The behavior we're testing is the same for the mock
-    state = createMockState()
+    state = State(
+      status: ApplicationStatus.Running,
+      config: Config(),
+      events: Events(
+        nodesFound: newAsyncDataEvent[seq[Nid]](),
+        newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),
+        dhtNodeCheck: newAsyncDataEvent[DhtNodeCheckEventData](),
+        nodesExpired: newAsyncDataEvent[seq[Nid]](),
+      ),
+    )
 
   test "whileRunning":
     var counter = 0

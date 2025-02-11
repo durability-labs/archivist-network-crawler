@@ -10,7 +10,7 @@ logScope:
   topics = "state"
 
 type
-  OnStep = proc(): Future[?!void] {.async: (raises: []), gcsafe.}
+  OnStep* = proc(): Future[?!void] {.async: (raises: []), gcsafe.}
 
   DhtNodeCheckEventData* = object
     id*: Nid
@@ -32,7 +32,7 @@ type
     config*: Config
     events*: Events
 
-proc whileRunning*(s: State, step: OnStep, delay: Duration) {.async.} =
+method whileRunning*(s: State, step: OnStep, delay: Duration) {.async, base.} =
   proc worker(): Future[void] {.async.} =
     while s.status == ApplicationStatus.Running:
       if err =? (await step()).errorOption:

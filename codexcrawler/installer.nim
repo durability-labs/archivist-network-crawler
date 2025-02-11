@@ -8,6 +8,7 @@ import ./components/dht
 import ./components/crawler
 import ./components/timetracker
 import ./components/nodestore
+import ./components/dhtmetrics
 
 proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   var components: seq[Component] = newSeq[Component]()
@@ -20,8 +21,12 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
 
   let metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
 
+  without dhtMetrics =? createDhtMetrics(state, metrics), err:
+    return failure(err)
+
   components.add(nodeStore)
   components.add(dht)
   components.add(Crawler.new(dht, state.config))
-  components.add(TimeTracker.new(state.config))
+  components.add(TimeTracker.new(state, nodeStore))
+  components.add(dhtMetrics)
   return success(components)

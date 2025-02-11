@@ -55,18 +55,26 @@ proc subscribe*[T](
   event.subscriptions.add(subscription)
   subscription
 
-proc fire*[T](event: AsyncDataEvent[T], data: T): Future[?!void] {.async.} =
+proc fire*[T](
+    event: AsyncDataEvent[T], data: T
+): Future[?!void] {.async: (raises: []).} =
   event.queue.emit(data.some)
   var toUnsubscribe = newSeq[AsyncDataEventSubscription]()
   for sub in event.subscriptions:
-    await sub.fireEvent.wait()
+    try:
+      await sub.fireEvent.wait()
+    except CancelledError:
+      discard
     if err =? sub.lastResult.errorOption:
       return failure(err)
     if sub.delayedUnsubscribe:
       toUnsubscribe.add(sub)
 
   for sub in toUnsubscribe:
-    await event.unsubscribe(sub)
+    try:
+      await event.unsubscribe(sub)
+    except CatchableError as exc:
+      return failure(exc.msg)
 
   success()
 

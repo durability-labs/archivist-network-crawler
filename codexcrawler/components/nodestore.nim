@@ -19,7 +19,7 @@ type
     id*: Nid
     lastVisit*: uint64
 
-  OnNodeEntry = proc(item: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.}
+  OnNodeEntry* = proc(item: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.}
 
   NodeStore* = ref object of Component
     state: State
@@ -87,19 +87,25 @@ proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
     ?await s.fireNewNodesDiscovered(newNodes)
   return success()
 
-proc iterateAll*(s: NodeStore, onNode: OnNodeEntry): Future[?!void] {.async.} =
+method iterateAll*(
+    s: NodeStore, onNode: OnNodeEntry
+): Future[?!void] {.async: (raises: []), base.} =
   without queryKey =? Key.init(nodestoreName), err:
     return failure(err)
-  without iter =? (await query[NodeEntry](s.store, Query.init(queryKey))), err:
-    return failure(err)
-
-  while not iter.finished:
-    without item =? (await iter.next()), err:
-      return failure(err)
-    without value =? item.value, err:
+  try:
+    without iter =? (await query[NodeEntry](s.store, Query.init(queryKey))), err:
       return failure(err)
 
-    ?await onNode(value)
+    while not iter.finished:
+      without item =? (await iter.next()), err:
+        return failure(err)
+      without value =? item.value, err:
+        return failure(err)
+
+      ?await onNode(value)
+  except CatchableError as exc:
+    return failure(exc.msg)
+
   return success()
 
 method start*(s: NodeStore): Future[?!void] {.async.} =
