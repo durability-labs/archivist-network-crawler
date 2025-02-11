@@ -1,3 +1,4 @@
+import pkg/asynctest/chronos/unittest
 import ../../codexcrawler/state
 import ../../codexcrawler/utils/asyncdataevent
 import ../../codexcrawler/types
@@ -20,5 +21,9 @@ proc createMockState*(): MockState =
     ),
   )
 
-proc cleanupMock*(this: MockState) =
-  discard
+proc checkAllUnsubscribed*(this: MockState) =
+  check:
+    this.events.nodesFound.listeners == 0
+    this.events.newNodesDiscovered.listeners == 0
+    this.events.dhtNodeCheck.listeners == 0
+    this.events.nodesExpired.listeners == 0

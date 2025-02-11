@@ -1,4 +1,5 @@
 import std/os
+import pkg/datastore
 import pkg/datastore/typedds
 import pkg/questionable/results
 import pkg/chronicles
@@ -11,12 +12,15 @@ import ../state
 import ../utils/datastoreutils
 import ../utils/asyncdataevent
 
-type
-  OnNodeId = proc(item: Nid): Future[?!void] {.async: (raises: []), gcsafe.}
+const
+  nodestoreName = "nodestore"
 
+type
   NodeEntry* = object
     id*: Nid
     lastVisit*: uint64
+
+  OnNodeEntry = proc(item: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.}
 
   NodeStore* = ref object of Component
     state: State
@@ -55,18 +59,53 @@ proc decode*(T: type NodeEntry, bytes: seq[byte]): ?!T =
     return success(NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64))
   return NodeEntry.fromBytes(bytes)
 
+proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
+  without key =? Key.init(nodestoreName / $nid), err:
+    return failure(err)
+  without exists =? (await s.store.has(key)), err:
+    return failure(err)
+
+  if not exists:
+    let entry = NodeEntry(
+      id: nid,
+      lastVisit: 0
+    )
+    ?await s.store.put(key, entry)
+  
+  return success(not exists)
+
+proc fireNewNodesDiscovered(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
+  await s.state.events.newNodesDiscovered.fire(nids)
+
 proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
-  # put the nodes in the store.
-  # track all new ones, if any, raise newNodes event.
+  var newNodes = newSeq[Nid]()
+
+  for nid in nids:
+    without isNew =? (await s.storeNodeIsNew(nid)), err:
+      return failure(err)
+    
+    if isNew:
+      newNodes.add(nid)
+
+  if newNodes.len > 0:
+    ? await s.fireNewNodesDiscovered(newNodes)
   return success()
 
-proc iterateAll*(s: NodeStore, onNodeId: OnNodeId) {.async.} =
-  discard
-  # query iterator, yield items to callback.
-  # for item in this.items:
-  #   onItem(item)
-  #   await sleepAsync(1.millis)
+proc iterateAll*(s: NodeStore, onNode: OnNodeEntry): Future[?!void] {.async.} =
+  without queryKey =? Key.init(nodestoreName), err:
+    return failure(err)
+  without iter =? (await query[NodeEntry](s.store, Query.init(queryKey))), err:
+    return failure(err)
 
+  while not iter.finished:
+    without item =? (await iter.next()), err:
+      return failure(err)
+    without value =? item.value, err:
+      return failure(err)
+    
+    ?await onNode(value)
+  return success()
+  
 method start*(s: NodeStore): Future[?!void] {.async.} =
   info "Starting nodestore..."
 

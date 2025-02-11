@@ -5,10 +5,11 @@ import pkg/chronos
 type
   AsyncDataEventSubscription* = ref object
     key: EventQueueKey
-    isRunning: bool
+    listenFuture: Future[void]
     fireEvent: AsyncEvent
-    stopEvent: AsyncEvent
     lastResult: ?!void
+    inHandler: bool
+    delayedUnsubscribe: bool
 
   AsyncDataEvent*[T] = ref object
     queue: AsyncEventQueue[?T]
@@ -21,47 +22,64 @@ proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
     queue: newAsyncEventQueue[?T](), subscriptions: newSeq[AsyncDataEventSubscription]()
   )
 
+proc performUnsubscribe[T](event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription) {.async.} =
+  if subscription in event.subscriptions:
+    await subscription.listenFuture.cancelAndWait()
+    event.subscriptions.delete(event.subscriptions.find(subscription))
+
 proc subscribe*[T](
     event: AsyncDataEvent[T], handler: AsyncDataEventHandler[T]
 ): AsyncDataEventSubscription =
-  let subscription = AsyncDataEventSubscription(
+  var subscription = AsyncDataEventSubscription(
     key: event.queue.register(),
-    isRunning: true,
+    listenFuture: newFuture[void](),
     fireEvent: newAsyncEvent(),
-    stopEvent: newAsyncEvent(),
+    inHandler: false,
+    delayedUnsubscribe: false
   )
 
   proc listener() {.async.} =
-    while subscription.isRunning:
+    while true:
       let items = await event.queue.waitEvents(subscription.key)
       for item in items:
         if data =? item:
+          subscription.inHandler = true
           subscription.lastResult = (await handler(data))
+          subscription.inHandler = false
       subscription.fireEvent.fire()
-    subscription.stopEvent.fire()
 
-  asyncSpawn listener()
+  subscription.listenFuture = listener()
 
   event.subscriptions.add(subscription)
   subscription
 
 proc fire*[T](event: AsyncDataEvent[T], data: T): Future[?!void] {.async.} =
   event.queue.emit(data.some)
-  for subscription in event.subscriptions:
-    await subscription.fireEvent.wait()
-    if err =? subscription.lastResult.errorOption:
+  var toUnsubscribe = newSeq[AsyncDataEventSubscription]()
+  for sub in event.subscriptions:
+    await sub.fireEvent.wait()
+    if err =? sub.lastResult.errorOption:
       return failure(err)
+    if sub.delayedUnsubscribe:
+      toUnsubscribe.add(sub)
+  
+  for sub in toUnsubscribe:
+    await event.unsubscribe(sub)
+
   success()
 
 proc unsubscribe*[T](
     event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription
 ) {.async.} =
-  subscription.isRunning = false
-  event.queue.emit(T.none)
-  await subscription.stopEvent.wait()
-  event.subscriptions.delete(event.subscriptions.find(subscription))
+  if subscription.inHandler:
+    subscription.delayedUnsubscribe = true
+  else:
+    await event.performUnsubscribe(subscription)
 
 proc unsubscribeAll*[T](event: AsyncDataEvent[T]) {.async.} =
   let all = event.subscriptions
   for subscription in all:
     await event.unsubscribe(subscription)
+
+proc listeners*[T](event: AsyncDataEvent[T]): int =
+  event.subscriptions.len

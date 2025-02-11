@@ -43,10 +43,6 @@ proc saveItem(this: List, item: Nid): Future[?!void] {.async.} =
   return success()
 
 proc load*(this: List): Future[?!void] {.async.} =
-  let id = Nid.fromStr("0")
-  let bytes = newSeq[byte]()
-  let ne = Nid.fromBytes(bytes)
-
   without queryKey =? Key.init(this.name), err:
     return failure(err)
   without iter =? (await query[Nid](this.store, Query.init(queryKey))), err:

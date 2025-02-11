@@ -29,9 +29,12 @@ suite "Nodestore":
       state, ds
     )
 
+    (await store.start()).tryGet()
+
   teardown:
+    (await store.stop()).tryGet()
     (await ds.close()).tryGet()
-    # state.cleanupMock()
+    state.checkAllUnsubscribed()
     removeDir(dsPath)
 
   test "nodeEntry encoding":
@@ -115,11 +118,11 @@ suite "Nodestore":
     (await state.events.nodesFound.fire(@[nid1, nid2, nid3])).tryGet()
 
     var iterNodes = newSeq[Nid]()
-    proc onNodeId(nid: Nid): Future[?!void] {.async: (raises: []), gcsafe.} =
-      iterNodes.add(nid)
+    proc onNode(entry: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
+      iterNodes.add(entry.id)
       return success()
 
-    await store.iterateAll(onNodeId)
+    (await store.iterateAll(onNode)).tryGet()
 
     check:
       nid1 in iterNodes

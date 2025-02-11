@@ -79,3 +79,25 @@ suite "AsyncDataEvent":
     await event.unsubscribe(s1)
     await event.unsubscribe(s2)
     await event.unsubscribe(s3)
+
+  test "Can unsubscribe in handler":
+    proc doNothing() {.async, closure.} =
+      await sleepAsync(1.millis)
+
+    var callback = doNothing
+
+    proc eventHandler(e: ExampleData): Future[?!void] {.async.} =
+      await callback()
+      success()
+
+    let s = event.subscribe(eventHandler)
+
+    proc doUnsubscribe() {.async.} =
+      await event.unsubscribe(s)
+
+    callback = doUnsubscribe
+
+    check:
+      isOK(await event.fire(ExampleData(s: msg)))
+
+    await event.unsubscribe(s)
