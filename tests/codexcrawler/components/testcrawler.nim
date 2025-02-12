@@ -8,9 +8,9 @@ import ../../../codexcrawler/services/dht
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
 import ../../../codexcrawler/state
-import ../mockstate
-import ../mockdht
-import ../mocktodolist
+import ../mocks/mockstate
+import ../mocks/mockdht
+import ../mocks/mocktodolist
 import ../helpers
 
 suite "Crawler":

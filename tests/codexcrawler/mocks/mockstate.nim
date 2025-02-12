@@ -1,8 +1,8 @@
 import pkg/asynctest/chronos/unittest
-import ../../codexcrawler/state
-import ../../codexcrawler/utils/asyncdataevent
-import ../../codexcrawler/types
-import ../../codexcrawler/config
+import ../../../codexcrawler/state
+import ../../../codexcrawler/utils/asyncdataevent
+import ../../../codexcrawler/types
+import ../../../codexcrawler/config
 
 type MockState* = ref object of State
   stepper*: OnStep

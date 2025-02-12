@@ -6,9 +6,9 @@ import ../../../codexcrawler/components/dhtmetrics
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
 import ../../../codexcrawler/state
-import ../mockstate
-import ../mocklist
-import ../mockmetrics
+import ../mocks/mockstate
+import ../mocks/mocklist
+import ../mocks/mockmetrics
 import ../helpers
 
 suite "DhtMetrics":

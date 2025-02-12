@@ -8,7 +8,7 @@ import ../../../codexcrawler/components/nodestore
 import ../../../codexcrawler/utils/datastoreutils
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
-import ../mockstate
+import ../mocks/mockstate
 import ../helpers
 
 suite "Nodestore":

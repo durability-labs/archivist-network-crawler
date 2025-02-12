@@ -7,9 +7,9 @@ import ../../../codexcrawler/components/nodestore
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
 import ../../../codexcrawler/state
-import ../mockstate
-import ../mocknodestore
-import ../mockdht
+import ../mocks/mockstate
+import ../mocks/mocknodestore
+import ../mocks/mockdht
 import ../helpers
 
 suite "TimeTracker":

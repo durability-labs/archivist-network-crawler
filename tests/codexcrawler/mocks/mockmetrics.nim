@@ -1,4 +1,4 @@
-import ../../codexcrawler/services/metrics
+import ../../../codexcrawler/services/metrics
 
 type MockMetrics* = ref object of Metrics
   todo*: int

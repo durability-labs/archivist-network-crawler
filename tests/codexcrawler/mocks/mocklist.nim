@@ -1,8 +1,8 @@
 import pkg/chronos
 import pkg/questionable/results
 
-import ../../codexcrawler/types
-import ../../codexcrawler/list
+import ../../../codexcrawler/types
+import ../../../codexcrawler/list
 
 type MockList* = ref object of List
   loadCalled*: bool

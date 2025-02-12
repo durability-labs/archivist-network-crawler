@@ -1,8 +1,8 @@
 import pkg/chronos
 import pkg/questionable/results
 
-import ../../codexcrawler/components/todolist
-import ../../codexcrawler/types
+import ../../../codexcrawler/components/todolist
+import ../../../codexcrawler/types
 
 type MockTodoList* = ref object of TodoList
   popReturn*: ?!Nid

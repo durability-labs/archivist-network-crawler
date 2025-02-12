@@ -1,8 +1,8 @@
 import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
-import ../../codexcrawler/services/dht
-import ../../codexcrawler/types
+import ../../../codexcrawler/services/dht
+import ../../../codexcrawler/types
 
 type MockDht* = ref object of Dht
   routingTable*: seq[Nid]

@@ -6,7 +6,7 @@ import ../../../codexcrawler/components/todolist
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
 import ../../../codexcrawler/state
-import ../mockstate
+import ../mocks/mockstate
 import ../helpers
 
 suite "TodoList":

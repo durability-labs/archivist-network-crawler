@@ -2,7 +2,7 @@ import std/sequtils
 import pkg/questionable/results
 import pkg/chronos
 
-import ../../codexcrawler/components/nodestore
+import ../../../codexcrawler/components/nodestore
 
 type MockNodeStore* = ref object of NodeStore
   nodesToIterate*: seq[NodeEntry]
