@@ -40,6 +40,7 @@ method start*(d: DhtMetrics): Future[?!void] {.async.} =
 
   proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
     await d.handleCheckEvent(event)
+
   d.sub = d.state.events.dhtNodeCheck.subscribe(onCheck)
 
   return success()

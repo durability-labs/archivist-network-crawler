@@ -7,19 +7,22 @@ import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
 import ../../../codexcrawler/state
 import ../mocks/mockstate
+import ../mocks/mockmetrics
 import ../helpers
 
 suite "TodoList":
   var
     nid: Nid
     state: MockState
+    metrics: MockMetrics
     todo: TodoList
 
   setup:
     nid = genNid()
     state = createMockState()
+    metrics = createMockMetrics()
 
-    todo = TodoList.new(state)
+    todo = TodoList.new(state, metrics)
 
     (await todo.start()).tryGet()
 
@@ -46,6 +49,19 @@ suite "TodoList":
 
     check:
       item == nid
+
+  test "newNodesDiscovered event updates todo metric":
+    await fireNewNodesDiscoveredEvent(@[nid])
+
+    check:
+      metrics.todo == 1
+
+  test "nodesExpired event updates todo metric":
+    await fireNodesExpiredEvent(@[nid])
+    let item = (await todo.pop).tryGet()
+
+    check:
+      metrics.todo == 1
 
   test "pop on empty todo list waits until item is added":
     let popFuture = todo.pop()

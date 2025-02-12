@@ -22,7 +22,7 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
 
   let
     metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
-    todoList = createTodoList(state)
+    todoList = createTodoList(state, metrics)
 
   without dhtMetrics =? createDhtMetrics(state, metrics), err:
     return failure(err)

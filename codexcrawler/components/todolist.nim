@@ -11,6 +11,7 @@ import ../state
 import ../types
 import ../component
 import ../utils/asyncdataevent
+import ../services/metrics
 
 logScope:
   topics = "todolist"
@@ -21,10 +22,13 @@ type TodoList* = ref object of Component
   subNew: AsyncDataEventSubscription
   subExp: AsyncDataEventSubscription
   emptySignal: ?Future[void]
+  metrics: Metrics
 
 proc addNodes(t: TodoList, nids: seq[Nid]) =
   for nid in nids:
     t.nids.add(nid)
+
+  t.metrics.setTodoNodes(t.nids.len)
 
   if s =? t.emptySignal:
     trace "Nodes added, resuming...", nodes = nids.len
@@ -64,8 +68,10 @@ method stop*(t: TodoList): Future[?!void] {.async.} =
   await t.state.events.nodesExpired.unsubscribe(t.subExp)
   return success()
 
-proc new*(_: type TodoList, state: State): TodoList =
-  TodoList(nids: newSeq[Nid](), state: state, emptySignal: Future[void].none)
+proc new*(_: type TodoList, state: State, metrics: Metrics): TodoList =
+  TodoList(
+    nids: newSeq[Nid](), state: state, emptySignal: Future[void].none, metrics: metrics
+  )
 
-proc createTodoList*(state: State): TodoList =
-  TodoList.new(state)
+proc createTodoList*(state: State, metrics: Metrics): TodoList =
+  TodoList.new(state, metrics)
