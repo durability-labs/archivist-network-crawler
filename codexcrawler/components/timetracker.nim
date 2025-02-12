@@ -33,6 +33,7 @@ proc checkForExpiredNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).
   return success()
 
 proc raiseRoutingTableNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
+  trace "Raising routing table nodes..."
   let nids = t.dht.getRoutingTableNodeIds()
   if err =? (await t.state.events.nodesFound.fire(nids)).errorOption:
     return failure(err)

@@ -31,8 +31,6 @@ proc handleCheckEvent(
 
   d.metrics.setOkNodes(d.ok.len)
   d.metrics.setNokNodes(d.nok.len)
-
-  trace "metrics updated", ok = d.ok.len, nok = d.nok.len
   return success()
 
 method start*(d: DhtMetrics): Future[?!void] {.async.} =
@@ -44,6 +42,13 @@ method start*(d: DhtMetrics): Future[?!void] {.async.} =
     await d.handleCheckEvent(event)
 
   d.sub = d.state.events.dhtNodeCheck.subscribe(onCheck)
+
+  proc logDhtMetrics(): Future[?!void] {.async: (raises: []), gcsafe.} =
+    trace "Metrics", ok = d.ok.len, nok = d.nok.len
+    return success()
+
+  await d.state.whileRunning(logDhtMetrics, 1.minutes)
+
   return success()
 
 method stop*(d: DhtMetrics): Future[?!void] {.async.} =

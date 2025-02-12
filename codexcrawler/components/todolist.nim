@@ -26,8 +26,8 @@ proc addNodes(t: TodoList, nids: seq[Nid]) =
   for nid in nids:
     t.nids.add(nid)
 
-  trace "Nodes added", nodes = nids.len
   if s =? t.emptySignal:
+    trace "Nodes added, resuming...", nodes = nids.len
     s.complete()
     t.emptySignal = Future[void].none
 

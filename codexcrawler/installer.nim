@@ -27,11 +27,11 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   without dhtMetrics =? createDhtMetrics(state, metrics), err:
     return failure(err)
 
+  components.add(dht)
   components.add(todoList)
   components.add(nodeStore)
-  components.add(dht)
   components.add(Crawler.new(state, dht, todoList))
-  components.add(TimeTracker.new(state, nodeStore))
+  components.add(TimeTracker.new(state, nodeStore, dht))
   components.add(dhtMetrics)
 
   return success(components)

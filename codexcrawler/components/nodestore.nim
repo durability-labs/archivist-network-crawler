@@ -81,12 +81,11 @@ proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
   for nid in nids:
     without isNew =? (await s.storeNodeIsNew(nid)), err:
       return failure(err)
-
     if isNew:
       newNodes.add(nid)
 
-  trace "Processed found nodes", total = nids.len, numNew = newNodes.len
   if newNodes.len > 0:
+    trace "Discovered new nodes", newNodes = newNodes.len
     ?await s.fireNewNodesDiscovered(newNodes)
   return success()
 

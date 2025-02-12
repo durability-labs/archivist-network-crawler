@@ -14,14 +14,14 @@ Usage:
 
 Options:
   --logLevel=<l>          Sets log level [default: INFO]
-  --publicIp=<a>          Public IP address where this instance is reachable. [default: 45.82.185.194]
+  --publicIp=<a>          Public IP address where this instance is reachable.
   --metricsAddress=<ip>   Listen address of the metrics server [default: 0.0.0.0]
   --metricsPort=<p>       Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>         Directory for storing data [default: crawler_data]
   --discoveryPort=<p>     Port used for DHT [default: 8090]
   --bootNodes=<n>         Semi-colon-separated list of Codex bootstrap SPRs [default: testnet_sprs]
   --stepDelay=<ms>        Delay in milliseconds per crawl step [default: 1000]
-  --revisitDelay=<m>      Delay in minutes after which a node can be revisited [default: 1] (24h)
+  --revisitDelay=<m>      Delay in minutes after which a node can be revisited [default: 10] (24h)
 """
 
 import strutils
