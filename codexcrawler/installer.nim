@@ -9,6 +9,7 @@ import ./components/crawler
 import ./components/timetracker
 import ./components/nodestore
 import ./components/dhtmetrics
+import ./components/todolist
 
 proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   var components: seq[Component] = newSeq[Component]()
@@ -32,5 +33,5 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   components.add(Crawler.new(state, dht, todoList))
   components.add(TimeTracker.new(state, nodeStore))
   components.add(dhtMetrics)
-  
+
   return success(components)

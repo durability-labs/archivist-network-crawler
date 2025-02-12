@@ -37,20 +37,14 @@ suite "Crawler":
     (await crawler.stop()).tryGet()
     state.checkAllUnsubscribed()
 
-  proc onStep() {.async.} = 
+  proc onStep() {.async.} =
     (await state.stepper()).tryGet()
 
   proc responsive(nid: Nid): GetNeighborsResponse =
-    GetNeighborsResponse(
-      isResponsive: true,
-      nodeIds: @[nid]
-    )
+    GetNeighborsResponse(isResponsive: true, nodeIds: @[nid])
 
   proc unresponsive(nid: Nid): GetNeighborsResponse =
-    GetNeighborsResponse(
-      isResponsive: false,
-      nodeIds: @[nid]
-    )
+    GetNeighborsResponse(isResponsive: false, nodeIds: @[nid])
 
   test "onStep should pop a node from the todoList and getNeighbors for it":
     todo.popReturn = success(nid1)
@@ -66,6 +60,7 @@ suite "Crawler":
     proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
       nodesFound = nids
       return success()
+
     let sub = state.events.nodesFound.subscribe(onNodesFound)
 
     todo.popReturn = success(nid1)
@@ -83,6 +78,7 @@ suite "Crawler":
     proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
       checkEvent = event
       return success()
+
     let sub = state.events.dhtNodeCheck.subscribe(onCheck)
 
     todo.popReturn = success(nid1)
@@ -101,6 +97,7 @@ suite "Crawler":
     proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
       checkEvent = event
       return success()
+
     let sub = state.events.dhtNodeCheck.subscribe(onCheck)
 
     todo.popReturn = success(nid1)

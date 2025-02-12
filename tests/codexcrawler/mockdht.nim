@@ -12,7 +12,9 @@ type MockDht* = ref object of Dht
 method getRoutingTableNodeIds*(d: MockDht): seq[Nid] =
   return d.routingTable
 
-method getNeighbors*(d: MockDht, target: Nid): Future[?!GetNeighborsResponse] {.async: (raises: []).} =
+method getNeighbors*(
+    d: MockDht, target: Nid
+): Future[?!GetNeighborsResponse] {.async: (raises: []).} =
   d.getNeighborsArg = some(target)
   return d.getNeighborsReturn
 

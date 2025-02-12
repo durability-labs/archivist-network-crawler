@@ -44,7 +44,7 @@ suite "TimeTracker":
     await state.events.nodesExpired.unsubscribe(sub)
     state.checkAllUnsubscribed()
 
-  proc onStep() {.async.} = 
+  proc onStep() {.async.} =
     (await state.stepper()).tryGet()
 
   proc createNodeInStore(lastVisit: uint64): Nid =

@@ -6,7 +6,7 @@ import ../../codexcrawler/types
 
 type MockTodoList* = ref object of TodoList
   popReturn*: ?!Nid
-  
+
 method pop*(t: MockTodoList): Future[?!Nid] {.async: (raises: []).} =
   return t.popReturn
 

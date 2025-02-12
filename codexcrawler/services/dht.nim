@@ -21,7 +21,7 @@ export discv5
 logScope:
   topics = "dht"
 
-type 
+type
   GetNeighborsResponse* = ref object
     isResponsive*: bool
     nodeIds*: seq[Nid]
@@ -34,6 +34,12 @@ type
     announceAddrs*: seq[MultiAddress]
     providerRecord*: ?SignedPeerRecord
     dhtRecord*: ?SignedPeerRecord
+
+proc responsive(nodeIds: seq[Nid]): GetNeighborsResponse =
+  GetNeighborsResponse(isResponsive: true, nodeIds: nodeIds)
+
+proc unresponsive(): GetNeighborsResponse =
+  GetNeighborsResponse(isResponsive: false, nodeIds: newSeq[Nid]())
 
 proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
   let node = d.protocol.getNode(nodeId)
@@ -48,9 +54,11 @@ method getRoutingTableNodeIds*(d: Dht): seq[Nid] {.base.} =
       ids.add(node.id)
   return ids
 
-method getNeighbors*(d: Dht, target: Nid): Future[?!GetNeighborsResponse] {.async: (raises: []), base.} =
+method getNeighbors*(
+    d: Dht, target: Nid
+): Future[?!GetNeighborsResponse] {.async: (raises: []), base.} =
   without node =? d.getNode(target), err:
-    return failure(err)
+    return success(unresponsive())
 
   let distances = @[256.uint16]
   try:
@@ -58,11 +66,12 @@ method getNeighbors*(d: Dht, target: Nid): Future[?!GetNeighborsResponse] {.asyn
 
     if response.isOk():
       let nodes = response.get()
-      return success(GetNeighborsResponse(
-        isResponsive: true,
-        nodeIds: nodes.mapIt(it.id))
-      )
-    return failure($response.error())
+      return success(responsive(nodes.mapIt(it.id)))
+    else:
+      let errmsg = $(response.error())
+      if errmsg == "Nodes message not received in time":
+        return success(unresponsive())
+      return failure(errmsg)
   except CatchableError as exc:
     return failure(exc.msg)
 

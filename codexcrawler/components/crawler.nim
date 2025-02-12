@@ -19,11 +19,10 @@ type Crawler* = ref object of Component
   dht: Dht
   todo: TodoList
 
-proc raiseCheckEvent(c: Crawler, nid: Nid, success: bool): Future[?!void] {.async: (raises: []).} =
-  let event = DhtNodeCheckEventData(
-    id: nid,
-    isOk: success
-  )
+proc raiseCheckEvent(
+    c: Crawler, nid: Nid, success: bool
+): Future[?!void] {.async: (raises: []).} =
+  let event = DhtNodeCheckEventData(id: nid, isOk: success)
   if err =? (await c.state.events.dhtNodeCheck.fire(event)).errorOption:
     return failure(err)
   return success()
@@ -48,6 +47,7 @@ method start*(c: Crawler): Future[?!void] {.async.} =
 
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
     await c.step()
+
   await c.state.whileRunning(onStep, c.state.config.stepDelayMs.milliseconds)
 
   return success()
@@ -55,14 +55,5 @@ method start*(c: Crawler): Future[?!void] {.async.} =
 method stop*(c: Crawler): Future[?!void] {.async.} =
   return success()
 
-proc new*(
-    T: type Crawler,
-    state: State,
-    dht: Dht,
-    todo: TodoList
-): Crawler =
-  Crawler(
-    state: state,
-    dht: dht,
-    todo: todo
-  )
+proc new*(T: type Crawler, state: State, dht: Dht, todo: TodoList): Crawler =
+  Crawler(state: state, dht: dht, todo: todo)
