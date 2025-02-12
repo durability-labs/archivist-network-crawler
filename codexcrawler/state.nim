@@ -33,7 +33,7 @@ type
     events*: Events
 
 proc delayedWorkerStart(s: State, step: OnStep, delay: Duration) {.async.} =
-  await sleepAsync(3.seconds)
+  await sleepAsync(1.seconds)
 
   proc worker(): Future[void] {.async.} =
     while s.status == ApplicationStatus.Running:

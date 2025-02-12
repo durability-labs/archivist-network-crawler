@@ -9,6 +9,7 @@ import ../../../codexcrawler/types
 import ../../../codexcrawler/state
 import ../mockstate
 import ../mocknodestore
+import ../mockdht
 import ../helpers
 
 suite "TimeTracker":
@@ -16,6 +17,7 @@ suite "TimeTracker":
     nid: Nid
     state: MockState
     store: MockNodeStore
+    dht: MockDht
     time: TimeTracker
     expiredNodesReceived: seq[Nid]
     sub: AsyncDataEventSubscription
@@ -24,6 +26,7 @@ suite "TimeTracker":
     nid = genNid()
     state = createMockState()
     store = createMockNodeStore()
+    dht = createMockDht()
 
     # Subscribe to nodesExpired event
     expiredNodesReceived = newSeq[Nid]()
@@ -35,7 +38,7 @@ suite "TimeTracker":
 
     state.config.revisitDelayMins = 22
 
-    time = TimeTracker.new(state, store)
+    time = TimeTracker.new(state, store, dht)
 
     (await time.start()).tryGet()
 
@@ -73,3 +76,20 @@ suite "TimeTracker":
 
     check:
       recentNodeId notin expiredNodesReceived
+
+  test "onStep raises routingTable nodes as nodesFound":
+    var nodesFound = newSeq[Nid]()
+    proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
+      nodesFound = nids
+      return success()
+
+    let sub = state.events.nodesFound.subscribe(onNodesFound)
+
+    dht.routingTable.add(nid)
+
+    await onStep()
+
+    check:
+      nid in nodesFound
+
+    await state.events.nodesFound.unsubscribe(sub)

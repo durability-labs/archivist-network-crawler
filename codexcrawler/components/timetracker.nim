@@ -3,6 +3,7 @@ import pkg/chronos
 import pkg/questionable/results
 
 import ./nodestore
+import ../services/dht
 import ../component
 import ../state
 import ../types
@@ -14,8 +15,9 @@ logScope:
 type TimeTracker* = ref object of Component
   state: State
   nodestore: NodeStore
+  dht: Dht
 
-proc step(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
+proc checkForExpiredNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
   trace "Checking for expired nodes..."
   let expiry =
     (Moment.now().epochSeconds - (t.state.config.revisitDelayMins * 60)).uint64
@@ -28,6 +30,17 @@ proc step(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
 
   ?await t.nodestore.iterateAll(checkNode)
   ?await t.state.events.nodesExpired.fire(expired)
+  return success()
+
+proc raiseRoutingTableNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
+  let nids = t.dht.getRoutingTableNodeIds()
+  if err =? (await t.state.events.nodesFound.fire(nids)).errorOption:
+    return failure(err)
+  return success()
+
+proc step(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
+  ?await t.checkForExpiredNodes()
+  ?await t.raiseRoutingTableNodes()
   return success()
 
 method start*(t: TimeTracker): Future[?!void] {.async.} =
@@ -46,5 +59,7 @@ method start*(t: TimeTracker): Future[?!void] {.async.} =
 method stop*(t: TimeTracker): Future[?!void] {.async.} =
   return success()
 
-proc new*(T: type TimeTracker, state: State, nodestore: NodeStore): TimeTracker =
-  TimeTracker(state: state, nodestore: nodestore)
+proc new*(
+    T: type TimeTracker, state: State, nodestore: NodeStore, dht: Dht
+): TimeTracker =
+  TimeTracker(state: state, nodestore: nodestore, dht: dht)

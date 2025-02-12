@@ -47,7 +47,7 @@ proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
     return success(node.get())
   return failure("Node not found for id: " & nodeId.toHex())
 
-method getRoutingTableNodeIds*(d: Dht): seq[Nid] {.base.} =
+method getRoutingTableNodeIds*(d: Dht): seq[Nid] {.base, gcsafe, raises: [].} =
   var ids = newSeq[Nid]()
   for bucket in d.protocol.routingTable.buckets:
     for node in bucket.nodes:
@@ -109,19 +109,9 @@ proc updateDhtRecord(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
-# proc findRoutingTableNodes(d: Dht) {.async.} =
-#   await sleepAsync(5.seconds)
-#   let nodes = d.getRoutingTableNodeIds()
-
-#   if err =? (await d.state.events.nodesFound.fire(nodes)).errorOption:
-#     error "Failed to raise routing-table nodes as found nodes", err = err.msg
-#   else:
-#     trace "Routing table nodes raised as found nodes", num = nodes.len
-
 method start*(d: Dht): Future[?!void] {.async.} =
   d.protocol.open()
   await d.protocol.start()
-  # asyncSpawn d.findRoutingTableNodes()
   return success()
 
 method stop*(d: Dht): Future[?!void] {.async.} =
