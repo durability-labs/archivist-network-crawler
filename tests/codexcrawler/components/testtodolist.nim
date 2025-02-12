@@ -58,7 +58,6 @@ suite "TodoList":
 
   test "nodesExpired event updates todo metric":
     await fireNodesExpiredEvent(@[nid])
-    let item = (await todo.pop).tryGet()
 
     check:
       metrics.todo == 1
@@ -73,3 +72,11 @@ suite "TodoList":
     check:
       popFuture.finished
       popFuture.value.tryGet() == nid
+
+  test "pop updates todo metric":
+    await fireNewNodesDiscoveredEvent(@[nid])
+
+    discard (await todo.pop()).tryGet()
+
+    check:
+      metrics.todo == 0

@@ -49,6 +49,7 @@ method pop*(t: TodoList): Future[?!Nid] {.async: (raises: []), base.} =
 
   let item = t.nids[0]
   t.nids.del(0)
+  t.metrics.setTodoNodes(t.nids.len)
 
   return success(item)
 
