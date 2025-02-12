@@ -44,6 +44,9 @@ suite "TimeTracker":
     await state.events.nodesExpired.unsubscribe(sub)
     state.checkAllUnsubscribed()
 
+  proc onStep() {.async.} = 
+    (await state.stepper()).tryGet()
+
   proc createNodeInStore(lastVisit: uint64): Nid =
     let entry = NodeEntry(id: genNid(), lastVisit: lastVisit)
     store.nodesToIterate.add(entry)
@@ -55,7 +58,7 @@ suite "TimeTracker":
         (Moment.now().epochSeconds - ((1 + state.config.revisitDelayMins) * 60)).uint64
       expiredNodeId = createNodeInStore(expiredTimestamp)
 
-    (await state.stepper()).tryGet()
+    await onStep()
 
     check:
       expiredNodeId in expiredNodesReceived
@@ -66,7 +69,7 @@ suite "TimeTracker":
         (Moment.now().epochSeconds - ((state.config.revisitDelayMins - 1) * 60)).uint64
       recentNodeId = createNodeInStore(recentTimestamp)
 
-    (await state.stepper()).tryGet()
+    await onStep()
 
     check:
       recentNodeId notin expiredNodesReceived

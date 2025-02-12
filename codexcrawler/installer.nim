@@ -2,9 +2,9 @@ import pkg/chronos
 import pkg/questionable/results
 
 import ./state
-import ./metrics
+import ./services/metrics
+import ./services/dht
 import ./component
-import ./components/dht
 import ./components/crawler
 import ./components/timetracker
 import ./components/nodestore
@@ -19,14 +19,18 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   without nodeStore =? createNodeStore(state), err:
     return failure(err)
 
-  let metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
+  let
+    metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
+    todoList = createTodoList(state)
 
   without dhtMetrics =? createDhtMetrics(state, metrics), err:
     return failure(err)
 
+  components.add(todoList)
   components.add(nodeStore)
   components.add(dht)
-  components.add(Crawler.new(dht, state.config))
+  components.add(Crawler.new(state, dht, todoList))
   components.add(TimeTracker.new(state, nodeStore))
   components.add(dhtMetrics)
+  
   return success(components)

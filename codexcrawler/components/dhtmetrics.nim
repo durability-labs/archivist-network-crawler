@@ -3,10 +3,9 @@ import pkg/chronos
 import pkg/questionable
 import pkg/questionable/results
 
-import ./dht
 import ../list
 import ../state
-import ../metrics
+import ../services/metrics
 import ../component
 import ../utils/asyncdataevent
 

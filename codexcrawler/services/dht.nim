@@ -1,5 +1,6 @@
 import std/os
 import std/net
+import std/sequtils
 import pkg/chronicles
 import pkg/chronos
 import pkg/libp2p
@@ -11,63 +12,59 @@ from pkg/nimcrypto import keccak256
 import ../utils/keyutils
 import ../utils/datastoreutils
 import ../utils/rng
-import ../utils/asyncdataevent
 import ../component
 import ../state
+import ../types
 
 export discv5
 
 logScope:
   topics = "dht"
 
-type Dht* = ref object of Component
-  state: State
-  protocol*: discv5.Protocol
-  key: PrivateKey
-  peerId: PeerId
-  announceAddrs*: seq[MultiAddress]
-  providerRecord*: ?SignedPeerRecord
-  dhtRecord*: ?SignedPeerRecord
+type 
+  GetNeighborsResponse* = ref object
+    isResponsive*: bool
+    nodeIds*: seq[Nid]
 
-# proc toNodeId*(cid: Cid): NodeId =
-#   ## Cid to discovery id
-#   ##
-
-#   readUintBE[256](keccak256.digest(cid.data.buffer).data)
-
-# proc toNodeId*(host: ca.Address): NodeId =
-#   ## Eth address to discovery id
-#   ##
-
-#   readUintBE[256](keccak256.digest(host.toArray).data)
+  Dht* = ref object of Component
+    state: State
+    protocol*: discv5.Protocol
+    key: PrivateKey
+    peerId: PeerId
+    announceAddrs*: seq[MultiAddress]
+    providerRecord*: ?SignedPeerRecord
+    dhtRecord*: ?SignedPeerRecord
 
 proc getNode*(d: Dht, nodeId: NodeId): ?!Node =
   let node = d.protocol.getNode(nodeId)
   if node.isSome():
     return success(node.get())
-  return failure("Node not found for id: " & $(NodeId(nodeId)))
+  return failure("Node not found for id: " & nodeId.toHex())
 
-proc getRoutingTableNodeIds(d: Dht): seq[NodeId] =
-  var ids = newSeq[NodeId]()
+method getRoutingTableNodeIds*(d: Dht): seq[Nid] {.base.} =
+  var ids = newSeq[Nid]()
   for bucket in d.protocol.routingTable.buckets:
     for node in bucket.nodes:
       ids.add(node.id)
   return ids
 
-proc getNeighbors*(d: Dht, target: NodeId): Future[?!seq[Node]] {.async.} =
+method getNeighbors*(d: Dht, target: Nid): Future[?!GetNeighborsResponse] {.async: (raises: []), base.} =
   without node =? d.getNode(target), err:
     return failure(err)
 
   let distances = @[256.uint16]
-  let response = await d.protocol.findNode(node, distances)
+  try:
+    let response = await d.protocol.findNode(node, distances)
 
-  if response.isOk():
-    let nodes = response.get()
-    if nodes.len > 0:
-      return success(nodes)
-
-  # Both returning 0 nodes and a failure result are treated as failure of getNeighbors
-  return failure("No nodes returned")
+    if response.isOk():
+      let nodes = response.get()
+      return success(GetNeighborsResponse(
+        isResponsive: true,
+        nodeIds: nodes.mapIt(it.id))
+      )
+    return failure($response.error())
+  except CatchableError as exc:
+    return failure(exc.msg)
 
 proc findPeer*(d: Dht, peerId: PeerId): Future[?PeerRecord] {.async.} =
   trace "protocol.resolve..."
@@ -103,19 +100,19 @@ proc updateDhtRecord(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
-proc findRoutingTableNodes(d: Dht) {.async.} =
-  await sleepAsync(5.seconds)
-  let nodes = d.getRoutingTableNodeIds()
+# proc findRoutingTableNodes(d: Dht) {.async.} =
+#   await sleepAsync(5.seconds)
+#   let nodes = d.getRoutingTableNodeIds()
 
-  if err =? (await d.state.events.nodesFound.fire(nodes)).errorOption:
-    error "Failed to raise routing-table nodes as found nodes", err = err.msg
-  else:
-    trace "Routing table nodes raise as found nodes", num = nodes.len
+#   if err =? (await d.state.events.nodesFound.fire(nodes)).errorOption:
+#     error "Failed to raise routing-table nodes as found nodes", err = err.msg
+#   else:
+#     trace "Routing table nodes raised as found nodes", num = nodes.len
 
 method start*(d: Dht): Future[?!void] {.async.} =
   d.protocol.open()
   await d.protocol.start()
-  asyncSpawn d.findRoutingTableNodes()
+  # asyncSpawn d.findRoutingTableNodes()
   return success()
 
 method stop*(d: Dht): Future[?!void] {.async.} =

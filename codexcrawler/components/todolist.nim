@@ -30,12 +30,15 @@ proc addNodes(t: TodoList, nids: seq[Nid]) =
     s.complete()
     t.emptySignal = Future[void].none
 
-proc pop*(t: TodoList): Future[?!Nid] {.async.} =
+method pop*(t: TodoList): Future[?!Nid] {.async: (raises: []), base.} =
   if t.nids.len < 1:
     trace "List is empty. Waiting for new items..."
     let signal = newFuture[void]("list.emptySignal")
     t.emptySignal = some(signal)
-    await signal.wait(1.hours)
+    try:
+      await signal.wait(1.hours)
+    except CatchableError as exc:
+      return failure(exc.msg)
     if t.nids.len < 1:
       return failure("TodoList is empty.")
 
@@ -63,5 +66,5 @@ method stop*(t: TodoList): Future[?!void] {.async.} =
 proc new*(_: type TodoList, state: State): TodoList =
   TodoList(nids: newSeq[Nid](), state: state, emptySignal: Future[void].none)
 
-proc createTodoList*(state: State): ?!TodoList =
-  success(TodoList.new(state))
+proc createTodoList*(state: State): TodoList =
+  TodoList.new(state)

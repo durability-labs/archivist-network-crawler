@@ -40,4 +40,5 @@ method whileRunning*(s: State, step: OnStep, delay: Duration) {.async, base.} =
         s.status = ApplicationStatus.Stopping
       await sleepAsync(delay)
 
+  # todo this needs a delay because starts are still being called.
   asyncSpawn worker()
