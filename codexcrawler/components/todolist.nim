@@ -26,6 +26,7 @@ proc addNodes(t: TodoList, nids: seq[Nid]) =
   for nid in nids:
     t.nids.add(nid)
 
+  trace "Nodes added", nodes = nids.len
   if s =? t.emptySignal:
     s.complete()
     t.emptySignal = Future[void].none
@@ -36,7 +37,7 @@ method pop*(t: TodoList): Future[?!Nid] {.async: (raises: []), base.} =
     let signal = newFuture[void]("list.emptySignal")
     t.emptySignal = some(signal)
     try:
-      await signal.wait(1.hours)
+      await signal.wait(InfiniteDuration)
     except CatchableError as exc:
       return failure(exc.msg)
     if t.nids.len < 1:

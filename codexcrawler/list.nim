@@ -70,8 +70,8 @@ method add*(this: List, nid: Nid): Future[?!void] {.async, base.} =
   return success()
 
 method remove*(this: List, nid: Nid): Future[?!void] {.async, base.} =
-  if this.items.len < 1:
-    return failure(this.name & "List is empty.")
+  if not this.contains(nid):
+    return success()
 
   this.items.excl(nid)
   without itemKey =? Key.init(this.name / $nid), err:

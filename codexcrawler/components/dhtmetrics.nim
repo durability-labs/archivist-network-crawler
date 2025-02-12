@@ -32,10 +32,11 @@ proc handleCheckEvent(
   d.metrics.setOkNodes(d.ok.len)
   d.metrics.setNokNodes(d.nok.len)
 
+  trace "metrics updated", ok = d.ok.len, nok = d.nok.len
   return success()
 
 method start*(d: DhtMetrics): Future[?!void] {.async.} =
-  info "Starting DhtMetrics..."
+  info "Starting..."
   ?await d.ok.load()
   ?await d.nok.load()
 

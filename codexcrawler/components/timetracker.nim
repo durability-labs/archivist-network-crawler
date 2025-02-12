@@ -16,6 +16,7 @@ type TimeTracker* = ref object of Component
   nodestore: NodeStore
 
 proc step(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
+  trace "Checking for expired nodes..."
   let expiry =
     (Moment.now().epochSeconds - (t.state.config.revisitDelayMins * 60)).uint64
 
@@ -30,7 +31,7 @@ proc step(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
   return success()
 
 method start*(t: TimeTracker): Future[?!void] {.async.} =
-  info "Starting timetracker..."
+  info "Starting..."
 
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
     await t.step()

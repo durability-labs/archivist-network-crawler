@@ -14,6 +14,9 @@ import ../utils/asyncdataevent
 
 const nodestoreName = "nodestore"
 
+logScope:
+  topics = "nodestore"
+
 type
   NodeEntry* = object
     id*: Nid
@@ -75,7 +78,6 @@ proc fireNewNodesDiscovered(s: NodeStore, nids: seq[Nid]): Future[?!void] {.asyn
 
 proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
   var newNodes = newSeq[Nid]()
-
   for nid in nids:
     without isNew =? (await s.storeNodeIsNew(nid)), err:
       return failure(err)
@@ -83,6 +85,7 @@ proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
     if isNew:
       newNodes.add(nid)
 
+  trace "Processed found nodes", total = nids.len, numNew = newNodes.len
   if newNodes.len > 0:
     ?await s.fireNewNodesDiscovered(newNodes)
   return success()
@@ -109,7 +112,7 @@ method iterateAll*(
   return success()
 
 method start*(s: NodeStore): Future[?!void] {.async.} =
-  info "Starting nodestore..."
+  info "Starting..."
 
   proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
     return await s.processFoundNodes(nids)

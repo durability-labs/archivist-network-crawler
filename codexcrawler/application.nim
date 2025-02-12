@@ -16,9 +16,10 @@ import ./types
 
 type Application* = ref object
   state: State
+  components: seq[Component]
 
 proc initializeApp(app: Application, config: Config): Future[?!void] {.async.} =
-  let state = State(
+  app.state = State(
     status: ApplicationStatus.Running,
     config: config,
     events: Events(
@@ -29,15 +30,21 @@ proc initializeApp(app: Application, config: Config): Future[?!void] {.async.} =
     ),
   )
 
-  without components =? (await createComponents(state)), err:
+  without components =? (await createComponents(app.state)), err:
     error "Failed to create componenents", err = err.msg
     return failure(err)
+  app.components = components
 
   for c in components:
     if err =? (await c.start()).errorOption:
       error "Failed to start component", err = err.msg
 
   return success()
+
+proc stopComponents(app: Application) {.async.} =
+  for c in app.components:
+    if err =? (await c.stop()).errorOption:
+      error "Failed to stop component", err = err.msg
 
 proc stop*(app: Application) =
   app.state.status = ApplicationStatus.Stopping
@@ -56,7 +63,6 @@ proc run*(app: Application) =
   info "Metrics endpoint initialized"
 
   info "Starting application"
-  app.state.status = ApplicationStatus.Running
   if err =? (waitFor app.initializeApp(config)).errorOption:
     app.state.status = ApplicationStatus.Stopping
     error "Failed to start application", err = err.msg
@@ -68,4 +74,7 @@ proc run*(app: Application) =
     except Exception as exc:
       error "Unhandled exception", msg = exc.msg
       quit QuitFailure
-  notice "Application closed"
+
+  notice "Application stopping..."
+  waitFor app.stopComponents()
+  notice "Application stopped"
