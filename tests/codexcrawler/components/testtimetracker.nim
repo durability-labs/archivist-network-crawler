@@ -10,13 +10,17 @@ import ../../../codexcrawler/state
 import ../mocks/mockstate
 import ../mocks/mocknodestore
 import ../mocks/mockdht
+import ../mocks/mockclock
 import ../helpers
 
 suite "TimeTracker":
+  let now = 123456789.uint64
+
   var
     nid: Nid
     state: MockState
     store: MockNodeStore
+    clock: MockClock
     dht: MockDht
     time: TimeTracker
     expiredNodesReceived: seq[Nid]
@@ -26,7 +30,10 @@ suite "TimeTracker":
     nid = genNid()
     state = createMockState()
     store = createMockNodeStore()
+    clock = createMockClock()
     dht = createMockDht()
+
+    clock.setNow = now
 
     # Subscribe to nodesExpired event
     expiredNodesReceived = newSeq[Nid]()
@@ -38,7 +45,7 @@ suite "TimeTracker":
 
     state.config.revisitDelayMins = 22
 
-    time = TimeTracker.new(state, store, dht)
+    time = TimeTracker.new(state, store, dht, clock)
 
     (await time.start()).tryGet()
 
@@ -57,8 +64,7 @@ suite "TimeTracker":
 
   test "onStep fires nodesExpired event for expired nodes":
     let
-      expiredTimestamp =
-        (Moment.now().epochSeconds - ((1 + state.config.revisitDelayMins) * 60)).uint64
+      expiredTimestamp = now - ((1 + state.config.revisitDelayMins) * 60).uint64
       expiredNodeId = createNodeInStore(expiredTimestamp)
 
     await onStep()
@@ -68,8 +74,7 @@ suite "TimeTracker":
 
   test "onStep does not fire nodesExpired event for nodes that are recent":
     let
-      recentTimestamp =
-        (Moment.now().epochSeconds - ((state.config.revisitDelayMins - 1) * 60)).uint64
+      recentTimestamp = now - ((state.config.revisitDelayMins - 1) * 60).uint64
       recentNodeId = createNodeInStore(recentTimestamp)
 
     await onStep()

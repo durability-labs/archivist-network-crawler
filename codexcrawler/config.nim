@@ -13,15 +13,15 @@ Usage:
   codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--stepDelay=<ms>] [--revisitDelay=<m>]
 
 Options:
-  --logLevel=<l>          Sets log level [default: INFO]
-  --publicIp=<a>          Public IP address where this instance is reachable.
+  --logLevel=<l>          Sets log level [default: TRACE]
+  --publicIp=<a>          Public IP address where this instance is reachable. [default: 62.45.154.249]
   --metricsAddress=<ip>   Listen address of the metrics server [default: 0.0.0.0]
   --metricsPort=<p>       Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>         Directory for storing data [default: crawler_data]
   --discoveryPort=<p>     Port used for DHT [default: 8090]
   --bootNodes=<n>         Semi-colon-separated list of Codex bootstrap SPRs [default: testnet_sprs]
-  --stepDelay=<ms>        Delay in milliseconds per crawl step [default: 1000]
-  --revisitDelay=<m>      Delay in minutes after which a node can be revisited [default: 10] (24h)
+  --stepDelay=<ms>        Delay in milliseconds per crawl step [default: 100]
+  --revisitDelay=<m>      Delay in minutes after which a node can be revisited [default: 1] (24h)
 """
 
 import strutils

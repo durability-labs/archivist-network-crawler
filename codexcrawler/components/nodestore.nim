@@ -11,6 +11,7 @@ import ../component
 import ../state
 import ../utils/datastoreutils
 import ../utils/asyncdataevent
+import ../services/clock
 
 const nodestoreName = "nodestore"
 
@@ -27,7 +28,9 @@ type
   NodeStore* = ref object of Component
     state: State
     store: TypedDatastore
-    sub: AsyncDataEventSubscription
+    clock: Clock
+    subFound: AsyncDataEventSubscription
+    subCheck: AsyncDataEventSubscription
 
 proc `$`*(entry: NodeEntry): string =
   $entry.id & ":" & $entry.lastVisit
@@ -91,6 +94,18 @@ proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
     ?await s.fireNewNodesDiscovered(newNodes)
   return success()
 
+proc updateLastVisit(s: NodeStore, nid: Nid): Future[?!void] {.async.} =
+  without key =? Key.init(nodestoreName / $nid), err:
+    return failure(err)
+
+  without var entry =? (await get[NodeEntry](s.store, key)), err:
+    return failure(err)
+
+  entry.lastVisit = s.clock.now()
+
+  ?await s.store.put(key, entry)
+  return success()
+
 method iterateAll*(
     s: NodeStore, onNode: OnNodeEntry
 ): Future[?!void] {.async: (raises: []), base.} =
@@ -118,19 +133,26 @@ method start*(s: NodeStore): Future[?!void] {.async.} =
   proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
     return await s.processFoundNodes(nids)
 
-  s.sub = s.state.events.nodesFound.subscribe(onNodesFound)
+  proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
+    return await s.updateLastVisit(event.id)
+
+  s.subFound = s.state.events.nodesFound.subscribe(onNodesFound)
+  s.subCheck = s.state.events.dhtNodeCheck.subscribe(onCheck)
   return success()
 
 method stop*(s: NodeStore): Future[?!void] {.async.} =
-  await s.state.events.nodesFound.unsubscribe(s.sub)
+  await s.state.events.nodesFound.unsubscribe(s.subFound)
+  await s.state.events.dhtNodeCheck.unsubscribe(s.subCheck)
   return success()
 
-proc new*(T: type NodeStore, state: State, store: TypedDatastore): NodeStore =
-  NodeStore(state: state, store: store)
+proc new*(
+    T: type NodeStore, state: State, store: TypedDatastore, clock: Clock
+): NodeStore =
+  NodeStore(state: state, store: store, clock: clock)
 
-proc createNodeStore*(state: State): ?!NodeStore =
+proc createNodeStore*(state: State, clock: Clock): ?!NodeStore =
   without ds =? createTypedDatastore(state.config.dataDir / "nodestore"), err:
     error "Failed to create typed datastore for node store", err = err.msg
     return failure(err)
 
-  return success(NodeStore.new(state, ds))
+  return success(NodeStore.new(state, ds, clock))

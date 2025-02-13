@@ -4,6 +4,7 @@ import pkg/questionable/results
 
 import ./nodestore
 import ../services/dht
+import ../services/clock
 import ../component
 import ../state
 import ../types
@@ -16,10 +17,10 @@ type TimeTracker* = ref object of Component
   state: State
   nodestore: NodeStore
   dht: Dht
+  clock: Clock
 
 proc checkForExpiredNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
-  let expiry =
-    (Moment.now().epochSeconds - (t.state.config.revisitDelayMins * 60)).uint64
+  let expiry = t.clock.now() - (t.state.config.revisitDelayMins * 60).uint64
 
   var expired = newSeq[Nid]()
   proc checkNode(item: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
@@ -54,7 +55,7 @@ method start*(t: TimeTracker): Future[?!void] {.async.} =
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
     await t.step()
 
-  var delay = t.state.config.revisitDelayMins div 100
+  var delay = t.state.config.revisitDelayMins
   if delay < 1:
     delay = 1
 
@@ -65,6 +66,6 @@ method stop*(t: TimeTracker): Future[?!void] {.async.} =
   return success()
 
 proc new*(
-    T: type TimeTracker, state: State, nodestore: NodeStore, dht: Dht
+    T: type TimeTracker, state: State, nodestore: NodeStore, dht: Dht, clock: Clock
 ): TimeTracker =
-  TimeTracker(state: state, nodestore: nodestore, dht: dht)
+  TimeTracker(state: state, nodestore: nodestore, dht: dht, clock: clock)

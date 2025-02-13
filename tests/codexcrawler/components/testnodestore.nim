@@ -8,7 +8,9 @@ import ../../../codexcrawler/components/nodestore
 import ../../../codexcrawler/utils/datastoreutils
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
+import ../../../codexcrawler/state
 import ../mocks/mockstate
+import ../mocks/mockclock
 import ../helpers
 
 suite "Nodestore":
@@ -19,13 +21,15 @@ suite "Nodestore":
   var
     ds: TypedDatastore
     state: MockState
+    clock: MockClock
     store: NodeStore
 
   setup:
     ds = createTypedDatastore(dsPath).tryGet()
     state = createMockState()
+    clock = createMockClock()
 
-    store = NodeStore.new(state, ds)
+    store = NodeStore.new(state, ds, clock)
 
     (await store.start()).tryGet()
 
@@ -121,3 +125,22 @@ suite "Nodestore":
       nid1 in iterNodes
       nid2 in iterNodes
       nid3 in iterNodes
+
+  test "dhtNodeCheck event should update lastVisit":
+    let
+      nid = genNid()
+      expectedKey = Key.init(nodestoreName / $nid).tryGet()
+
+    clock.setNow = 123456789.uint64
+
+    (await state.events.nodesFound.fire(@[nid])).tryGet()
+
+    let originalEntry = (await get[NodeEntry](ds, expectedKey)).tryGet()
+    check:
+      originalEntry.lastVisit == 0
+
+    (await state.events.dhtNodeCheck.fire(DhtNodeCheckEventData(id: nid, isOk: true))).tryGet()
+
+    let updatedEntry = (await get[NodeEntry](ds, expectedKey)).tryGet()
+    check:
+      clock.setNow == updatedEntry.lastVisit
