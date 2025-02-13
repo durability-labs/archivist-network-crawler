@@ -23,7 +23,7 @@ suite "TimeTracker":
     clock: MockClock
     dht: MockDht
     time: TimeTracker
-    expiredNodesReceived: seq[Nid]
+    nodesToRevisitReceived: seq[Nid]
     sub: AsyncDataEventSubscription
 
   setup:
@@ -35,13 +35,13 @@ suite "TimeTracker":
 
     clock.setNow = now
 
-    # Subscribe to nodesExpired event
-    expiredNodesReceived = newSeq[Nid]()
-    proc onExpired(nids: seq[Nid]): Future[?!void] {.async.} =
-      expiredNodesReceived = nids
+    # Subscribe to nodesToRevisit event
+    nodesToRevisitReceived = newSeq[Nid]()
+    proc onToRevisit(nids: seq[Nid]): Future[?!void] {.async.} =
+      nodesToRevisitReceived = nids
       return success()
 
-    sub = state.events.nodesExpired.subscribe(onExpired)
+    sub = state.events.nodesToRevisit.subscribe(onToRevisit)
 
     state.config.checkDelayMins = 11
     state.config.expiryDelayMins = 22
@@ -52,44 +52,73 @@ suite "TimeTracker":
 
   teardown:
     (await time.stop()).tryGet()
-    await state.events.nodesExpired.unsubscribe(sub)
+    await state.events.nodesToRevisit.unsubscribe(sub)
     state.checkAllUnsubscribed()
 
-  proc onStepExpiry() {.async.} =
+  proc onStepCheck() {.async.} =
     (await state.steppers[0]()).tryGet()
 
   proc onStepRt() {.async.} =
     (await state.steppers[1]()).tryGet()
 
-  proc createNodeInStore(lastVisit: uint64): Nid =
-    let entry = NodeEntry(id: genNid(), lastVisit: lastVisit)
+  proc createNodeInStore(lastVisit: uint64, firstInactive = 0.uint64): Nid =
+    let entry =
+      NodeEntry(id: genNid(), lastVisit: lastVisit, firstInactive: firstInactive)
     store.nodesToIterate.add(entry)
     return entry.id
 
-  test "start sets steppers for expiry and routingtable load":
+  test "start sets steppers for check and routingtable load":
     check:
       state.delays[0] == state.config.checkDelayMins.minutes
       state.delays[1] == 30.minutes
 
-  test "onStep fires nodesExpired event for expired nodes":
+  test "onStep fires nodesToRevisit event for nodes past revisit timestamp":
     let
-      expiredTimestamp = now - ((1 + state.config.expiryDelayMins) * 60).uint64
-      expiredNodeId = createNodeInStore(expiredTimestamp)
+      revisitTimestamp = now - ((state.config.revisitDelayMins + 1) * 60).uint64
+      revisitNodeId = createNodeInStore(revisitTimestamp)
 
-    await onStepExpiry()
+    await onStepCheck()
 
     check:
-      expiredNodeId in expiredNodesReceived
+      revisitNodeId in nodesToRevisitReceived
 
-  test "onStep does not fire nodesExpired event for nodes that are recent":
+  test "onStep does not fire nodesToRevisit event for nodes that are recent":
     let
-      recentTimestamp = now - ((state.config.expiryDelayMins - 1) * 60).uint64
+      recentTimestamp = now - ((state.config.revisitDelayMins - 1) * 60).uint64
       recentNodeId = createNodeInStore(recentTimestamp)
 
-    await onStepExpiry()
+    await onStepCheck()
 
     check:
-      recentNodeId notin expiredNodesReceived
+      recentNodeId notin nodesToRevisitReceived
+
+  test "onStep deletes nodes with past expired inactivity timestamp":
+    let
+      expiredTimestamp = now - ((state.config.expiryDelayMins + 1) * 60).uint64
+      expiredNodeId = createNodeInStore(now, expiredTimestamp)
+
+    await onStepCheck()
+
+    check:
+      expiredNodeId in store.nodesToDelete
+
+  test "onStep does not delete nodes with recent inactivity timestamp":
+    let
+      recentTimestamp = now - ((state.config.expiryDelayMins - 1) * 60).uint64
+      recentNodeId = createNodeInStore(now, recentTimestamp)
+
+    await onStepCheck()
+
+    check:
+      recentNodeId notin store.nodesToDelete
+
+  test "onStep does not delete nodes with zero inactivity timestamp":
+    let activeNodeId = createNodeInStore(now, 0.uint64)
+
+    await onStepCheck()
+
+    check:
+      activeNodeId notin store.nodesToDelete
 
   test "onStep raises routingTable nodes as nodesFound":
     var nodesFound = newSeq[Nid]()

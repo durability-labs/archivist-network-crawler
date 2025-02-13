@@ -32,6 +32,55 @@ suite "AsyncDataEvent":
 
     await event.unsubscribe(s)
 
+  test "Multiple events":
+    var counter = 0
+    proc eventHandler(e: ExampleData): Future[?!void] {.async.} =
+      inc counter
+      success()
+
+    let s = event.subscribe(eventHandler)
+
+    check:
+      isOK(await event.fire(ExampleData(s: msg)))
+      isOK(await event.fire(ExampleData(s: msg)))
+      isOK(await event.fire(ExampleData(s: msg)))
+
+      counter == 3
+
+    await event.unsubscribe(s)
+
+  test "Multiple subscribers":
+    var
+      data1 = ""
+      data2 = ""
+      data3 = ""
+    proc eventHandler1(e: ExampleData): Future[?!void] {.async.} =
+      data1 = e.s
+      success()
+
+    proc eventHandler2(e: ExampleData): Future[?!void] {.async.} =
+      data2 = e.s
+      success()
+
+    proc eventHandler3(e: ExampleData): Future[?!void] {.async.} =
+      data3 = e.s
+      success()
+
+    let
+      sub1 = event.subscribe(eventHandler1)
+      sub2 = event.subscribe(eventHandler2)
+      sub3 = event.subscribe(eventHandler3)
+
+    check:
+      isOK(await event.fire(ExampleData(s: msg)))
+      data1 == msg
+      data2 == msg
+      data3 == msg
+
+    await event.unsubscribe(sub1)
+    await event.unsubscribe(sub2)
+    await event.unsubscribe(sub3)
+
   test "Failed event preserves error message":
     proc eventHandler(e: ExampleData): Future[?!void] {.async.} =
       failure(msg)

@@ -18,7 +18,7 @@ suite "State":
         nodesFound: newAsyncDataEvent[seq[Nid]](),
         newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),
         dhtNodeCheck: newAsyncDataEvent[DhtNodeCheckEventData](),
-        nodesExpired: newAsyncDataEvent[seq[Nid]](),
+        nodesToRevisit: newAsyncDataEvent[seq[Nid]](),
       ),
     )
 

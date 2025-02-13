@@ -10,11 +10,12 @@ DATADIR=${CRAWLER_DATADIR:-crawler_data}
 DISCPORT=${CRAWLER_DISCPORT:-8090}
 BOOTNODES=${CRAWLER_BOOTNODES:-testnet_sprs}
 STEPDELAY=${CRAWLER_STEPDELAY:-1000}
+REVISITDELAY=${CRAWLER_REVISITDELAY:-60}
 CHECKDELAY=${CRAWLER_CHECKDELAY:-10}
-EXPIRYDELAY=${CRAWLER_EXPIRYDELAY:-60}
+EXPIRYDELAY=${CRAWLER_EXPIRYDELAY:-1440}
 
 # Update CLI arguments
-set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --bootNodes="${BOOTNODES}" --stepDelay="${STEPDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}"
+set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --bootNodes="${BOOTNODES}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}"
 
 # Run
 echo "Run Codex Crawler"

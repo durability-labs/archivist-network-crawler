@@ -13,7 +13,7 @@ proc checkAllUnsubscribed*(s: MockState) =
     s.events.nodesFound.listeners == 0
     s.events.newNodesDiscovered.listeners == 0
     s.events.dhtNodeCheck.listeners == 0
-    s.events.nodesExpired.listeners == 0
+    s.events.nodesToRevisit.listeners == 0
 
 method whileRunning*(s: MockState, step: OnStep, delay: Duration) {.async.} =
   s.steppers.add(step)
@@ -27,7 +27,7 @@ proc createMockState*(): MockState =
       nodesFound: newAsyncDataEvent[seq[Nid]](),
       newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),
       dhtNodeCheck: newAsyncDataEvent[DhtNodeCheckEventData](),
-      nodesExpired: newAsyncDataEvent[seq[Nid]](),
+      nodesToRevisit: newAsyncDataEvent[seq[Nid]](),
     ),
     steppers: newSeq[OnStep](),
     delays: newSeq[Duration](),

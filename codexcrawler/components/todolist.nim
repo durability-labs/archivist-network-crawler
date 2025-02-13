@@ -20,7 +20,7 @@ type TodoList* = ref object of Component
   nids: seq[Nid]
   state: State
   subNew: AsyncDataEventSubscription
-  subExp: AsyncDataEventSubscription
+  subRev: AsyncDataEventSubscription
   emptySignal: ?Future[void]
   metrics: Metrics
 
@@ -62,12 +62,12 @@ method start*(t: TodoList): Future[?!void] {.async.} =
     return success()
 
   t.subNew = t.state.events.newNodesDiscovered.subscribe(onNewNodes)
-  t.subExp = t.state.events.nodesExpired.subscribe(onNewNodes)
+  t.subRev = t.state.events.nodesToRevisit.subscribe(onNewNodes)
   return success()
 
 method stop*(t: TodoList): Future[?!void] {.async.} =
   await t.state.events.newNodesDiscovered.unsubscribe(t.subNew)
-  await t.state.events.nodesExpired.unsubscribe(t.subExp)
+  await t.state.events.nodesToRevisit.unsubscribe(t.subRev)
   return success()
 
 proc new*(_: type TodoList, state: State, metrics: Metrics): TodoList =

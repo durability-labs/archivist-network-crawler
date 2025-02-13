@@ -10,7 +10,7 @@ let doc =
 Codex Network Crawler. Generates network metrics.
 
 Usage:
-  codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--stepDelay=<ms>] [--revisitDelay=<m>]
+  codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--stepDelay=<ms>] [--revisitDelay=<m>] [--checkDelay=<m>]  [--expiryDelay=<m>]
 
 Options:
   --logLevel=<l>                    Sets log level [default: INFO]
@@ -20,9 +20,10 @@ Options:
   --dataDir=<dir>                   Directory for storing data [default: crawler_data]
   --discoveryPort=<p>               Port used for DHT [default: 8090]
   --bootNodes=<n>                   Semi-colon-separated list of Codex bootstrap SPRs [default: testnet_sprs]
-  --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 100]
-  --expiryDelay=<m>                 Delay in minutes after which a node can be revisited [default: 60]
-  --checkDelay=<m>                  Delay with which the 'expiryDelay' is checked for all known nodes [default: 10]
+  --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 1000]
+  --revisitDelay=<m>                Delay in minutes after which a node can be revisited [default: 60]
+  --checkDelay=<m>                  Delay with which the 'revisitDelay' is checked for all known nodes [default: 10]
+  --expiryDelay=<m>                 Delay in minutes after which unresponsive nodes are discarded [default: 1440] (24h)
 """
 
 import strutils
@@ -37,16 +38,17 @@ type Config* = ref object
   discPort*: Port
   bootNodes*: seq[SignedPeerRecord]
   stepDelayMs*: int
-  expiryDelayMins*: int
+  revisitDelayMins*: int
   checkDelayMins*: int
+  expiryDelayMins*: int
 
 proc `$`*(config: Config): string =
   "Crawler:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
     " metricsAddress=" & $config.metricsAddress & " metricsPort=" & $config.metricsPort &
     " dataDir=" & config.dataDir & " discPort=" & $config.discPort & " bootNodes=" &
     config.bootNodes.mapIt($it).join(";") & " stepDelay=" & $config.stepDelayMs &
-    " expiryDelayMins=" & $config.expiryDelayMins & " checkDelayMins=" &
-    $config.checkDelayMins
+    " revisitDelayMins=" & $config.revisitDelayMins & " expiryDelayMins=" &
+    $config.expiryDelayMins & " checkDelayMins=" & $config.checkDelayMins
 
 proc getDefaultTestnetBootNodes(): seq[string] =
   @[
@@ -99,6 +101,7 @@ proc parseConfig*(): Config =
     discPort: Port(parseInt(get("--discoveryPort"))),
     bootNodes: getBootNodes(get("--bootNodes")),
     stepDelayMs: parseInt(get("--stepDelay")),
-    expiryDelayMins: parseInt(get("--expiryDelay")),
+    revisitDelayMins: parseInt(get("--revisitDelay")),
     checkDelayMins: parseInt(get("--checkDelay")),
+    expiryDelayMins: parseInt(get("--expiryDelay")),
   )

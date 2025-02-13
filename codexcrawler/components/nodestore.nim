@@ -22,6 +22,7 @@ type
   NodeEntry* = object
     id*: Nid
     lastVisit*: uint64
+    firstInactive*: uint64
 
   OnNodeEntry* = proc(item: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.}
 
@@ -33,12 +34,13 @@ type
     subCheck: AsyncDataEventSubscription
 
 proc `$`*(entry: NodeEntry): string =
-  $entry.id & ":" & $entry.lastVisit
+  $entry.id & ":" & $entry.lastVisit & " " & $entry.firstInactive
 
 proc toBytes*(entry: NodeEntry): seq[byte] =
   var buffer = initProtoBuffer()
   buffer.write(1, $entry.id)
   buffer.write(2, entry.lastVisit)
+  buffer.write(3, entry.firstInactive)
   buffer.finish()
   return buffer.buffer
 
@@ -47,6 +49,7 @@ proc fromBytes*(_: type NodeEntry, data: openArray[byte]): ?!NodeEntry =
     buffer = initProtoBuffer(data)
     idStr: string
     lastVisit: uint64
+    firstInactive: uint64
 
   if buffer.getField(1, idStr).isErr:
     return failure("Unable to decode `idStr`")
@@ -54,26 +57,36 @@ proc fromBytes*(_: type NodeEntry, data: openArray[byte]): ?!NodeEntry =
   if buffer.getField(2, lastVisit).isErr:
     return failure("Unable to decode `lastVisit`")
 
-  return success(NodeEntry(id: Nid.fromStr(idStr), lastVisit: lastVisit))
+  if buffer.getField(3, firstInactive).isErr:
+    return failure("Unable to decode `firstInactive`")
+
+  return success(
+    NodeEntry(
+      id: Nid.fromStr(idStr), lastVisit: lastVisit, firstInactive: firstInactive
+    )
+  )
 
 proc encode*(e: NodeEntry): seq[byte] =
   e.toBytes()
 
 proc decode*(T: type NodeEntry, bytes: seq[byte]): ?!T =
   if bytes.len < 1:
-    return success(NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64))
+    return success(
+      NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64, firstInactive: 0.uint64)
+    )
   return NodeEntry.fromBytes(bytes)
 
 proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
   without key =? Key.init(nodestoreName / $nid), err:
+    error "failed to format key", err = err.msg
     return failure(err)
   without exists =? (await s.store.has(key)), err:
+    error "failed to check store for key", err = err.msg
     return failure(err)
 
   if not exists:
-    let entry = NodeEntry(id: nid, lastVisit: 0)
+    let entry = NodeEntry(id: nid, lastVisit: 0, firstInactive: 0)
     ?await s.store.put(key, entry)
-
     info "New node", nodeId = $nid
 
   return success(not exists)
@@ -94,37 +107,77 @@ proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
     ?await s.fireNewNodesDiscovered(newNodes)
   return success()
 
-proc updateLastVisit(s: NodeStore, nid: Nid): Future[?!void] {.async.} =
-  without key =? Key.init(nodestoreName / $nid), err:
+proc processNodeCheck(
+    s: NodeStore, event: DhtNodeCheckEventData
+): Future[?!void] {.async.} =
+  without key =? Key.init(nodestoreName / $(event.id)), err:
+    error "failed to format key", err = err.msg
     return failure(err)
 
   without var entry =? (await get[NodeEntry](s.store, key)), err:
+    error "failed to get entry for key", err = err.msg, key = $key
     return failure(err)
 
   entry.lastVisit = s.clock.now()
+  if event.isOk and entry.firstInactive > 0:
+    entry.firstInactive = 0
+  elif not event.isOk and entry.firstInactive == 0:
+    entry.firstInactive = s.clock.now()
 
   ?await s.store.put(key, entry)
+  return success()
+
+proc deleteEntry(s: NodeStore, nid: Nid): Future[?!void] {.async.} =
+  without key =? Key.init(nodestoreName / $nid), err:
+    error "failed to format key", err = err.msg
+    return failure(err)
+  without exists =? (await s.store.has(key)), err:
+    error "failed to check store for key", err = err.msg, key = $key
+    return failure(err)
+
+  if exists:
+    ?await s.store.delete(key)
   return success()
 
 method iterateAll*(
     s: NodeStore, onNode: OnNodeEntry
 ): Future[?!void] {.async: (raises: []), base.} =
   without queryKey =? Key.init(nodestoreName), err:
+    error "failed to format key", err = err.msg
     return failure(err)
   try:
     without iter =? (await query[NodeEntry](s.store, Query.init(queryKey))), err:
+      error "failed to create query", err = err.msg
       return failure(err)
 
     while not iter.finished:
       without item =? (await iter.next()), err:
+        error "failure during query iteration", err = err.msg
         return failure(err)
       without value =? item.value, err:
+        error "failed to get value from iterator", err = err.msg
         return failure(err)
 
-      ?await onNode(value)
+      if $(value.id) == "0" and value.lastVisit == 0 and value.firstInactive == 0:
+        # iterator stop entry
+        discard
+      else:
+        ?await onNode(value)
+
+      await sleepAsync(1.millis)
   except CatchableError as exc:
     return failure(exc.msg)
 
+  return success()
+
+method deleteEntries*(
+    s: NodeStore, nids: seq[Nid]
+): Future[?!void] {.async: (raises: []), base.} =
+  for nid in nids:
+    try:
+      ?await s.deleteEntry(nid)
+    except CatchableError as exc:
+      return failure(exc.msg)
   return success()
 
 method start*(s: NodeStore): Future[?!void] {.async.} =
@@ -134,7 +187,7 @@ method start*(s: NodeStore): Future[?!void] {.async.} =
     return await s.processFoundNodes(nids)
 
   proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
-    return await s.updateLastVisit(event.id)
+    return await s.processNodeCheck(event)
 
   s.subFound = s.state.events.nodesFound.subscribe(onNodesFound)
   s.subCheck = s.state.events.dhtNodeCheck.subscribe(onCheck)

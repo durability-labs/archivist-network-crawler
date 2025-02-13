@@ -3,15 +3,23 @@ import pkg/questionable/results
 import pkg/chronos
 
 import ../../../codexcrawler/components/nodestore
+import ../../../codexcrawler/types
 
 type MockNodeStore* = ref object of NodeStore
   nodesToIterate*: seq[NodeEntry]
+  nodesToDelete*: seq[Nid]
 
 method iterateAll*(
     s: MockNodeStore, onNode: OnNodeEntry
 ): Future[?!void] {.async: (raises: []).} =
   for node in s.nodesToIterate:
     ?await onNode(node)
+  return success()
+
+method deleteEntries*(
+    s: MockNodeStore, nids: seq[Nid]
+): Future[?!void] {.async: (raises: []).} =
+  s.nodesToDelete = nids
   return success()
 
 method start*(s: MockNodeStore): Future[?!void] {.async.} =
@@ -21,4 +29,4 @@ method stop*(s: MockNodeStore): Future[?!void] {.async.} =
   return success()
 
 proc createMockNodeStore*(): MockNodeStore =
-  MockNodeStore(nodesToIterate: newSeq[NodeEntry]())
+  MockNodeStore(nodesToIterate: newSeq[NodeEntry](), nodesToDelete: newSeq[Nid]())

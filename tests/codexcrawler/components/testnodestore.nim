@@ -39,8 +39,15 @@ suite "Nodestore":
     state.checkAllUnsubscribed()
     removeDir(dsPath)
 
+  proc fireNodeFoundEvent(nids: seq[Nid]) {.async.} =
+    (await state.events.nodesFound.fire(nids)).tryGet()
+
+  proc fireCheckEvent(nid: Nid, isOk: bool) {.async.} =
+    (await state.events.dhtNodeCheck.fire(DhtNodeCheckEventData(id: nid, isOk: isOk))).tryGet()
+
   test "nodeEntry encoding":
-    let entry = NodeEntry(id: genNid(), lastVisit: 123.uint64)
+    let entry =
+      NodeEntry(id: genNid(), lastVisit: 123.uint64, firstInactive: 234.uint64)
 
     let
       bytes = entry.encode()
@@ -49,13 +56,14 @@ suite "Nodestore":
     check:
       entry.id == decoded.id
       entry.lastVisit == decoded.lastVisit
+      entry.firstInactive == decoded.firstInactive
 
   test "nodesFound event should store nodes":
     let
       nid = genNid()
       expectedKey = Key.init(nodestoreName / $nid).tryGet()
 
-    (await state.events.nodesFound.fire(@[nid])).tryGet()
+    await fireNodeFoundEvent(@[nid])
 
     check:
       (await ds.has(expectedKey)).tryGet()
@@ -74,7 +82,7 @@ suite "Nodestore":
       sub = state.events.newNodesDiscovered.subscribe(onNewNodes)
       nid = genNid()
 
-    (await state.events.nodesFound.fire(@[nid])).tryGet()
+    await fireNodeFoundEvent(@[nid])
 
     check:
       newNodes == @[nid]
@@ -85,7 +93,7 @@ suite "Nodestore":
     let nid = genNid()
 
     # Make nid known first. Then subscribe.
-    (await state.events.nodesFound.fire(@[nid])).tryGet()
+    await fireNodeFoundEvent(@[nid])
 
     var
       newNodes = newSeq[Nid]()
@@ -98,7 +106,7 @@ suite "Nodestore":
     let sub = state.events.newNodesDiscovered.subscribe(onNewNodes)
 
     # Firing the event again should not trigger newNodesDiscovered for nid
-    (await state.events.nodesFound.fire(@[nid])).tryGet()
+    await fireNodeFoundEvent(@[nid])
 
     check:
       newNodes.len == 0
@@ -112,7 +120,7 @@ suite "Nodestore":
       nid2 = genNid()
       nid3 = genNid()
 
-    (await state.events.nodesFound.fire(@[nid1, nid2, nid3])).tryGet()
+    await fireNodeFoundEvent(@[nid1, nid2, nid3])
 
     var iterNodes = newSeq[Nid]()
     proc onNode(entry: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
@@ -126,6 +134,46 @@ suite "Nodestore":
       nid2 in iterNodes
       nid3 in iterNodes
 
+  test "iterateAll yields no uninitialized entries":
+    let
+      nid1 = genNid()
+      nid2 = genNid()
+      nid3 = genNid()
+
+    await fireNodeFoundEvent(@[nid1, nid2, nid3])
+
+    var iterNodes = newSeq[Nid]()
+    proc onNode(entry: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
+      iterNodes.add(entry.id)
+      return success()
+
+    (await store.iterateAll(onNode)).tryGet()
+
+    for nid in iterNodes:
+      check:
+        $nid != "0"
+
+  test "deleteEntries deletes entries":
+    let
+      nid1 = genNid()
+      nid2 = genNid()
+      nid3 = genNid()
+
+    await fireNodeFoundEvent(@[nid1, nid2, nid3])
+    (await store.deleteEntries(@[nid1, nid2])).tryGet()
+
+    var iterNodes = newSeq[Nid]()
+    proc onNode(entry: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
+      iterNodes.add(entry.id)
+      return success()
+
+    (await store.iterateAll(onNode)).tryGet()
+
+    check:
+      nid1 notin iterNodes
+      nid2 notin iterNodes
+      nid3 in iterNodes
+
   test "dhtNodeCheck event should update lastVisit":
     let
       nid = genNid()
@@ -133,14 +181,43 @@ suite "Nodestore":
 
     clock.setNow = 123456789.uint64
 
-    (await state.events.nodesFound.fire(@[nid])).tryGet()
+    await fireNodeFoundEvent(@[nid])
 
     let originalEntry = (await get[NodeEntry](ds, expectedKey)).tryGet()
     check:
       originalEntry.lastVisit == 0
 
-    (await state.events.dhtNodeCheck.fire(DhtNodeCheckEventData(id: nid, isOk: true))).tryGet()
+    await fireCheckEvent(nid, true)
 
     let updatedEntry = (await get[NodeEntry](ds, expectedKey)).tryGet()
     check:
       clock.setNow == updatedEntry.lastVisit
+
+  test "failed dhtNodeCheck event should set firstInactive":
+    let
+      nid = genNid()
+      expectedKey = Key.init(nodestoreName / $nid).tryGet()
+
+    clock.setNow = 345345.uint64
+
+    await fireNodeFoundEvent(@[nid])
+    await fireCheckEvent(nid, false)
+
+    let updatedEntry = (await get[NodeEntry](ds, expectedKey)).tryGet()
+    check:
+      clock.setNow == updatedEntry.firstInactive
+
+  test "successful dhtNodeCheck event should clear firstInactive":
+    let
+      nid = genNid()
+      expectedKey = Key.init(nodestoreName / $nid).tryGet()
+
+    clock.setNow = 456456.uint64
+
+    await fireNodeFoundEvent(@[nid])
+    await fireCheckEvent(nid, false)
+    await fireCheckEvent(nid, true)
+
+    let updatedEntry = (await get[NodeEntry](ds, expectedKey)).tryGet()
+    check:
+      updatedEntry.firstInactive == 0

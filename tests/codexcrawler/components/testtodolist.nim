@@ -33,8 +33,8 @@ suite "TodoList":
   proc fireNewNodesDiscoveredEvent(nids: seq[Nid]) {.async.} =
     (await state.events.newNodesDiscovered.fire(nids)).tryGet()
 
-  proc fireNodesExpiredEvent(nids: seq[Nid]) {.async.} =
-    (await state.events.nodesExpired.fire(nids)).tryGet()
+  proc fireNodesToRevisitEvent(nids: seq[Nid]) {.async.} =
+    (await state.events.nodesToRevisit.fire(nids)).tryGet()
 
   test "discovered nodes are added to todo list":
     await fireNewNodesDiscoveredEvent(@[nid])
@@ -43,8 +43,8 @@ suite "TodoList":
     check:
       item == nid
 
-  test "expired nodes are added to todo list":
-    await fireNodesExpiredEvent(@[nid])
+  test "revisit nodes are added to todo list":
+    await fireNodesToRevisitEvent(@[nid])
     let item = (await todo.pop).tryGet()
 
     check:
@@ -56,15 +56,15 @@ suite "TodoList":
     check:
       metrics.todo == 1
 
-  test "nodesExpired event updates todo metric":
-    await fireNodesExpiredEvent(@[nid])
+  test "nodesToRevisit event updates todo metric":
+    await fireNodesToRevisitEvent(@[nid])
 
     check:
       metrics.todo == 1
 
   test "does not store duplicates":
     await fireNewNodesDiscoveredEvent(@[nid])
-    await fireNodesExpiredEvent(@[nid])
+    await fireNodesToRevisitEvent(@[nid])
 
     check:
       metrics.todo == 1

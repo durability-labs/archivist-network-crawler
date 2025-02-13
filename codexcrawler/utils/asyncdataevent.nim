@@ -63,6 +63,7 @@ proc fire*[T](
   for sub in event.subscriptions:
     try:
       await sub.fireEvent.wait()
+      sub.fireEvent.clear()
     except CancelledError:
       discard
     if err =? sub.lastResult.errorOption:
