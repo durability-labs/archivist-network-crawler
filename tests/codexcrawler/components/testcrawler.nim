@@ -38,7 +38,7 @@ suite "Crawler":
     state.checkAllUnsubscribed()
 
   proc onStep() {.async.} =
-    (await state.stepper()).tryGet()
+    (await state.steppers[0]()).tryGet()
 
   proc responsive(nid: Nid): GetNeighborsResponse =
     GetNeighborsResponse(isResponsive: true, nodeIds: @[nid])

@@ -5,7 +5,8 @@ import ../../../codexcrawler/types
 import ../../../codexcrawler/config
 
 type MockState* = ref object of State
-  stepper*: OnStep
+  steppers*: seq[OnStep]
+  delays*: seq[Duration]
 
 proc checkAllUnsubscribed*(s: MockState) =
   check:
@@ -15,7 +16,8 @@ proc checkAllUnsubscribed*(s: MockState) =
     s.events.nodesExpired.listeners == 0
 
 method whileRunning*(s: MockState, step: OnStep, delay: Duration) {.async.} =
-  s.stepper = step
+  s.steppers.add(step)
+  s.delays.add(delay)
 
 proc createMockState*(): MockState =
   MockState(
@@ -27,4 +29,6 @@ proc createMockState*(): MockState =
       dhtNodeCheck: newAsyncDataEvent[DhtNodeCheckEventData](),
       nodesExpired: newAsyncDataEvent[seq[Nid]](),
     ),
+    steppers: newSeq[OnStep](),
+    delays: newSeq[Duration](),
   )

@@ -43,7 +43,8 @@ suite "TimeTracker":
 
     sub = state.events.nodesExpired.subscribe(onExpired)
 
-    state.config.revisitDelayMins = 22
+    state.config.checkDelayMins = 11
+    state.config.expiryDelayMins = 22
 
     time = TimeTracker.new(state, store, dht, clock)
 
@@ -54,30 +55,38 @@ suite "TimeTracker":
     await state.events.nodesExpired.unsubscribe(sub)
     state.checkAllUnsubscribed()
 
-  proc onStep() {.async.} =
-    (await state.stepper()).tryGet()
+  proc onStepExpiry() {.async.} =
+    (await state.steppers[0]()).tryGet()
+
+  proc onStepRt() {.async.} =
+    (await state.steppers[1]()).tryGet()
 
   proc createNodeInStore(lastVisit: uint64): Nid =
     let entry = NodeEntry(id: genNid(), lastVisit: lastVisit)
     store.nodesToIterate.add(entry)
     return entry.id
 
+  test "start sets steppers for expiry and routingtable load":
+    check:
+      state.delays[0] == state.config.checkDelayMins.minutes
+      state.delays[1] == 30.minutes
+
   test "onStep fires nodesExpired event for expired nodes":
     let
-      expiredTimestamp = now - ((1 + state.config.revisitDelayMins) * 60).uint64
+      expiredTimestamp = now - ((1 + state.config.expiryDelayMins) * 60).uint64
       expiredNodeId = createNodeInStore(expiredTimestamp)
 
-    await onStep()
+    await onStepExpiry()
 
     check:
       expiredNodeId in expiredNodesReceived
 
   test "onStep does not fire nodesExpired event for nodes that are recent":
     let
-      recentTimestamp = now - ((state.config.revisitDelayMins - 1) * 60).uint64
+      recentTimestamp = now - ((state.config.expiryDelayMins - 1) * 60).uint64
       recentNodeId = createNodeInStore(recentTimestamp)
 
-    await onStep()
+    await onStepExpiry()
 
     check:
       recentNodeId notin expiredNodesReceived
@@ -92,7 +101,7 @@ suite "TimeTracker":
 
     dht.routingTable.add(nid)
 
-    await onStep()
+    await onStepRt()
 
     check:
       nid in nodesFound

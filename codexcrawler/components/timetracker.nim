@@ -20,7 +20,7 @@ type TimeTracker* = ref object of Component
   clock: Clock
 
 proc checkForExpiredNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
-  let expiry = t.clock.now() - (t.state.config.revisitDelayMins * 60).uint64
+  let expiry = t.clock.now() - (t.state.config.expiryDelayMins * 60).uint64
 
   var expired = newSeq[Nid]()
   proc checkNode(item: NodeEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
@@ -44,22 +44,17 @@ proc raiseRoutingTableNodes(t: TimeTracker): Future[?!void] {.async: (raises: []
     return failure(err)
   return success()
 
-proc step(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
-  ?await t.checkForExpiredNodes()
-  ?await t.raiseRoutingTableNodes()
-  return success()
-
 method start*(t: TimeTracker): Future[?!void] {.async.} =
   info "Starting..."
 
-  proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
-    await t.step()
+  proc onCheckExpiry(): Future[?!void] {.async: (raises: []), gcsafe.} =
+    await t.checkForExpiredNodes()
 
-  var delay = t.state.config.revisitDelayMins
-  if delay < 1:
-    delay = 1
+  proc onRoutingTable(): Future[?!void] {.async: (raises: []), gcsafe.} =
+    await t.raiseRoutingTableNodes()
 
-  await t.state.whileRunning(onStep, delay.minutes)
+  await t.state.whileRunning(onCheckExpiry, t.state.config.checkDelayMins.minutes)
+  await t.state.whileRunning(onRoutingTable, 30.minutes)
   return success()
 
 method stop*(t: TimeTracker): Future[?!void] {.async.} =
