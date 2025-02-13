@@ -18,7 +18,6 @@ type TimeTracker* = ref object of Component
   dht: Dht
 
 proc checkForExpiredNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
-  trace "Checking for expired nodes..."
   let expiry =
     (Moment.now().epochSeconds - (t.state.config.revisitDelayMins * 60)).uint64
 
@@ -29,12 +28,17 @@ proc checkForExpiredNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).
     return success()
 
   ?await t.nodestore.iterateAll(checkNode)
-  ?await t.state.events.nodesExpired.fire(expired)
+
+  if expired.len > 0:
+    trace "Found expired nodes", expired = expired.len
+    ?await t.state.events.nodesExpired.fire(expired)
+
   return success()
 
 proc raiseRoutingTableNodes(t: TimeTracker): Future[?!void] {.async: (raises: []).} =
-  trace "Raising routing table nodes..."
   let nids = t.dht.getRoutingTableNodeIds()
+  trace "Raising routing table nodes", nodes = nids.len
+
   if err =? (await t.state.events.nodesFound.fire(nids)).errorOption:
     return failure(err)
   return success()

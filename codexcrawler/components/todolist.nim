@@ -26,7 +26,8 @@ type TodoList* = ref object of Component
 
 proc addNodes(t: TodoList, nids: seq[Nid]) =
   for nid in nids:
-    t.nids.add(nid)
+    if nid notin t.nids:
+      t.nids.add(nid)
 
   t.metrics.setTodoNodes(t.nids.len)
 

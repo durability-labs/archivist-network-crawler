@@ -71,6 +71,8 @@ proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
     let entry = NodeEntry(id: nid, lastVisit: 0)
     ?await s.store.put(key, entry)
 
+    info "New node", nodeId = $nid
+
   return success(not exists)
 
 proc fireNewNodesDiscovered(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =

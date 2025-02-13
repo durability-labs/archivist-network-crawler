@@ -62,6 +62,13 @@ suite "TodoList":
     check:
       metrics.todo == 1
 
+  test "does not store duplicates":
+    await fireNewNodesDiscoveredEvent(@[nid])
+    await fireNodesExpiredEvent(@[nid])
+
+    check:
+      metrics.todo == 1
+
   test "pop on empty todo list waits until item is added":
     let popFuture = todo.pop()
     check:
