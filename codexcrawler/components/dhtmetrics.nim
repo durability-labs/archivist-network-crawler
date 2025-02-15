@@ -5,6 +5,7 @@ import pkg/questionable/results
 
 import ../list
 import ../state
+import ../types
 import ../services/metrics
 import ../component
 import ../utils/asyncdataevent
@@ -16,8 +17,13 @@ type DhtMetrics* = ref object of Component
   state: State
   ok: List
   nok: List
-  sub: AsyncDataEventSubscription
+  subCheck: AsyncDataEventSubscription
+  subDel: AsyncDataEventSubscription
   metrics: Metrics
+
+proc updateMetrics(d: DhtMetrics) =
+  d.metrics.setOkNodes(d.ok.len)
+  d.metrics.setNokNodes(d.nok.len)
 
 proc handleCheckEvent(
     d: DhtMetrics, event: DhtNodeCheckEventData
@@ -29,8 +35,14 @@ proc handleCheckEvent(
     ?await d.ok.remove(event.id)
     ?await d.nok.add(event.id)
 
-  d.metrics.setOkNodes(d.ok.len)
-  d.metrics.setNokNodes(d.nok.len)
+  d.updateMetrics()
+  return success()
+
+proc handleDeleteEvent(d: DhtMetrics, nids: seq[Nid]): Future[?!void] {.async.} =
+  for nid in nids:
+    ?await d.ok.remove(nid)
+    ?await d.nok.remove(nid)
+  d.updateMetrics()
   return success()
 
 method start*(d: DhtMetrics): Future[?!void] {.async.} =
@@ -41,12 +53,17 @@ method start*(d: DhtMetrics): Future[?!void] {.async.} =
   proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
     await d.handleCheckEvent(event)
 
-  d.sub = d.state.events.dhtNodeCheck.subscribe(onCheck)
+  proc onDelete(nids: seq[Nid]): Future[?!void] {.async.} =
+    await d.handleDeleteEvent(nids)
+
+  d.subCheck = d.state.events.dhtNodeCheck.subscribe(onCheck)
+  d.subDel = d.state.events.nodesDeleted.subscribe(onDelete)
 
   return success()
 
 method stop*(d: DhtMetrics): Future[?!void] {.async.} =
-  await d.state.events.dhtNodeCheck.unsubscribe(d.sub)
+  await d.state.events.dhtNodeCheck.unsubscribe(d.subCheck)
+  await d.state.events.nodesDeleted.unsubscribe(d.subDel)
   return success()
 
 proc new*(

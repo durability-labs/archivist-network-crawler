@@ -94,6 +94,11 @@ proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
 proc fireNewNodesDiscovered(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
   await s.state.events.newNodesDiscovered.fire(nids)
 
+proc fireNodesDeleted(
+    s: NodeStore, nids: seq[Nid]
+): Future[?!void] {.async: (raises: []).} =
+  await s.state.events.nodesDeleted.fire(nids)
+
 proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
   var newNodes = newSeq[Nid]()
   for nid in nids:
@@ -114,6 +119,16 @@ proc processNodeCheck(
     error "failed to format key", err = err.msg
     return failure(err)
 
+  without exists =? (await s.store.has(key)), err:
+    error "failed to check store for key", err = err.msg
+    return failure(err)
+
+  if not exists:
+    warn "Expected node entry to exist in store, but was not found.", key = $key
+    # We treat the node as deleted, so it can be rediscovered and readded if it still exists in the network.
+    ?await s.fireNodesDeleted(@[event.id])
+    return success()
+
   without var entry =? (await get[NodeEntry](s.store, key)), err:
     error "failed to get entry for key", err = err.msg, key = $key
     return failure(err)
@@ -127,7 +142,7 @@ proc processNodeCheck(
   ?await s.store.put(key, entry)
   return success()
 
-proc deleteEntry(s: NodeStore, nid: Nid): Future[?!void] {.async.} =
+proc deleteEntry(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
   without key =? Key.init(nodestoreName / $nid), err:
     error "failed to format key", err = err.msg
     return failure(err)
@@ -137,7 +152,8 @@ proc deleteEntry(s: NodeStore, nid: Nid): Future[?!void] {.async.} =
 
   if exists:
     ?await s.store.delete(key)
-  return success()
+
+  return success(exists)
 
 method iterateAll*(
     s: NodeStore, onNode: OnNodeEntry
@@ -173,11 +189,17 @@ method iterateAll*(
 method deleteEntries*(
     s: NodeStore, nids: seq[Nid]
 ): Future[?!void] {.async: (raises: []), base.} =
+  var deleted = newSeq[Nid]()
   for nid in nids:
     try:
-      ?await s.deleteEntry(nid)
+      without wasDeleted =? (await s.deleteEntry(nid)), err:
+        return failure(err)
+      if wasDeleted:
+        deleted.add(nid)
     except CatchableError as exc:
       return failure(exc.msg)
+
+  ?await s.fireNodesDeleted(deleted)
   return success()
 
 method start*(s: NodeStore): Future[?!void] {.async.} =

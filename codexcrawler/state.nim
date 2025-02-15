@@ -21,6 +21,7 @@ type
     newNodesDiscovered*: AsyncDataEvent[seq[Nid]]
     dhtNodeCheck*: AsyncDataEvent[DhtNodeCheckEventData]
     nodesToRevisit*: AsyncDataEvent[seq[Nid]]
+    nodesDeleted*: AsyncDataEvent[seq[Nid]]
 
   ApplicationStatus* {.pure.} = enum
     Stopped

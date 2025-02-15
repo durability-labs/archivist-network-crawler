@@ -27,6 +27,7 @@ proc initializeApp(app: Application, config: Config): Future[?!void] {.async.} =
       newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),
       dhtNodeCheck: newAsyncDataEvent[DhtNodeCheckEventData](),
       nodesToRevisit: newAsyncDataEvent[seq[Nid]](),
+      nodesDeleted: newAsyncDataEvent[seq[Nid]](),
     ),
   )
 

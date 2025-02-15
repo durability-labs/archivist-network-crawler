@@ -28,6 +28,7 @@ proc createMockState*(): MockState =
       newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),
       dhtNodeCheck: newAsyncDataEvent[DhtNodeCheckEventData](),
       nodesToRevisit: newAsyncDataEvent[seq[Nid]](),
+      nodesDeleted: newAsyncDataEvent[seq[Nid]](),
     ),
     steppers: newSeq[OnStep](),
     delays: newSeq[Duration](),

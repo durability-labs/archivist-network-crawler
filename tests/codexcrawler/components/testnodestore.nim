@@ -174,6 +174,28 @@ suite "Nodestore":
       nid2 notin iterNodes
       nid3 in iterNodes
 
+  test "deleteEntries fires nodesDeleted event":
+    var deletedNodes = newSeq[Nid]()
+    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async.} =
+      deletedNodes = nids
+      return success()
+
+    let
+      sub = state.events.nodesDeleted.subscribe(onDeleted)
+      nid1 = genNid()
+      nid2 = genNid()
+      nid3 = genNid()
+
+    await fireNodeFoundEvent(@[nid1, nid2, nid3])
+    (await store.deleteEntries(@[nid1, nid2])).tryGet()
+
+    check:
+      nid1 in deletedNodes
+      nid2 in deletedNodes
+      nid3 notin deletedNodes
+
+    await state.events.nodesDeleted.unsubscribe(sub)
+
   test "dhtNodeCheck event should update lastVisit":
     let
       nid = genNid()
@@ -221,3 +243,21 @@ suite "Nodestore":
     let updatedEntry = (await get[NodeEntry](ds, expectedKey)).tryGet()
     check:
       updatedEntry.firstInactive == 0
+
+  test "dhtNodeCheck event for non-existing node should fire nodesDeleted":
+    var deletedNodes = newSeq[Nid]()
+    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async.} =
+      deletedNodes = nids
+      return success()
+
+    let
+      sub = state.events.nodesDeleted.subscribe(onDeleted)
+      nid = genNid()
+
+    # We don't fire nodeFound first. So the store doesn't know it exists.
+    await fireCheckEvent(nid, true)
+
+    check:
+      nid in deletedNodes
+
+    await state.events.nodesDeleted.unsubscribe(sub)

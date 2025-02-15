@@ -40,6 +40,9 @@ suite "DhtMetrics":
 
     (await state.events.dhtNodeCheck.fire(event)).tryGet()
 
+  proc fireNodesDeletedEvent(nids: seq[Nid]) {.async.} =
+    (await state.events.nodesDeleted.fire(nids)).tryGet()
+
   test "dhtmetrics start should load both lists":
     check:
       okList.loadCalled
@@ -88,3 +91,20 @@ suite "DhtMetrics":
 
     check:
       metrics.nok == length
+
+  test "nodesDeleted event should remove node from both lists":
+    await fireNodesDeletedEvent(@[nid])
+
+    check:
+      nid in okList.removed
+      nid in nokList.removed
+
+  test "nodesDeleted event should set list lengths as metrics for both lists":
+    okList.length = 123
+    nokList.length = 345
+
+    await fireNodesDeletedEvent(@[nid])
+
+    check:
+      metrics.ok == okList.length
+      metrics.nok == nokList.length
