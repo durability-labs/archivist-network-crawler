@@ -52,7 +52,8 @@ method start*(c: Crawler): Future[?!void] {.async.} =
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
     await c.step()
 
-  await c.state.whileRunning(onStep, c.state.config.stepDelayMs.milliseconds)
+  if c.state.config.dhtEnable:
+    await c.state.whileRunning(onStep, c.state.config.stepDelayMs.milliseconds)
 
   return success()
 

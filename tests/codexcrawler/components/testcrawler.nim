@@ -55,6 +55,20 @@ suite "Crawler":
     check:
       !(dht.getNeighborsArg) == nid1
 
+  test "onStep is not activated when config.dhtEnable is false":
+    # Recreate crawler, reset mockstate:
+    (await crawler.stop()).tryGet()
+    state.steppers = @[]
+    # disable DHT:
+    state.config.dhtEnable = false
+    (await crawler.start()).tryGet()
+
+    todo.popReturn = success(nid1)
+    dht.getNeighborsReturn = success(responsive(nid1))
+
+    check:
+      state.steppers.len == 0
+
   test "nodes returned by getNeighbors are raised as nodesFound":
     var nodesFound = newSeq[Nid]()
     proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
