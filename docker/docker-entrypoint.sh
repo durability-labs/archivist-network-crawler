@@ -9,13 +9,19 @@ METRICSPORT=${CRAWLER_METRICSPORT:-8008}
 DATADIR=${CRAWLER_DATADIR:-crawler_data}
 DISCPORT=${CRAWLER_DISCPORT:-8090}
 BOOTNODES=${CRAWLER_BOOTNODES:-testnet_sprs}
+
+DHTENABLE=${CRAWLER_DHTENABLE:-1}
 STEPDELAY=${CRAWLER_STEPDELAY:-1000}
 REVISITDELAY=${CRAWLER_REVISITDELAY:-60}
 CHECKDELAY=${CRAWLER_CHECKDELAY:-10}
 EXPIRYDELAY=${CRAWLER_EXPIRYDELAY:-1440}
 
+MARKETPLACEENABLE=${CRAWLER_MARKETPLACEENABLE:-1}
+ETHPROVIDER=${CRAWLER_ETHPROVIDER:-NULL}
+MARKETPLACEADDRESS=${CRAWLER_MARKETPLACEADDRESS:-NULL}
+
 # Update CLI arguments
-set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --bootNodes="${BOOTNODES}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}"
+set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --bootNodes="${BOOTNODES}" --dhtEnable="${DHTENABLE}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}" --marketplaceEnable="${MARKETPLACEENABLE}" --ethProvider="${ETHPROVIDER}" --marketplaceAddress="${MARKETPLACEADDRESS}"
 
 # Run
 echo "Run Codex Crawler"

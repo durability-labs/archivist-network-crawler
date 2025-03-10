@@ -10,7 +10,7 @@ let doc =
 Codex Network Crawler. Generates network metrics.
 
 Usage:
-  codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--stepDelay=<ms>] [--revisitDelay=<m>] [--checkDelay=<m>]  [--expiryDelay=<m>]
+  codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--dhtEnable=<e>] [--stepDelay=<ms>] [--revisitDelay=<m>] [--checkDelay=<m>]  [--expiryDelay=<m>] [--marketplaceEnable=<e>] [--ethProvider=<a>] [--marketplaceAddress=<a>]
 
 Options:
   --logLevel=<l>                    Sets log level [default: INFO]
@@ -20,10 +20,14 @@ Options:
   --dataDir=<dir>                   Directory for storing data [default: crawler_data]
   --discoveryPort=<p>               Port used for DHT [default: 8090]
   --bootNodes=<n>                   Semi-colon-separated list of Codex bootstrap SPRs [default: testnet_sprs]
+  --dhtEnable=<e>                         Set to "1" to enable DHT crawler [default: 1]
   --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 1000]
   --revisitDelay=<m>                Delay in minutes after which a node can be revisited [default: 60]
   --checkDelay=<m>                  Delay with which the 'revisitDelay' is checked for all known nodes [default: 10]
   --expiryDelay=<m>                 Delay in minutes after which unresponsive nodes are discarded [default: 1440] (24h)
+  --marketplaceEnable=<e>                 Set to "1" to enable marketplace metrics [default: 1]
+  --ethProvider=<a>                Address including http(s) or ws of the eth provider
+  --marketplaceAddress=<a>         Eth address of Codex contracts deployment
 """
 
 import strutils
@@ -37,18 +41,27 @@ type Config* = ref object
   dataDir*: string
   discPort*: Port
   bootNodes*: seq[SignedPeerRecord]
+
+  dhtEnable*: bool
   stepDelayMs*: int
   revisitDelayMins*: int
   checkDelayMins*: int
   expiryDelayMins*: int
 
+  marketplaceEnable*: bool
+  ethProvider*: string
+  marketplaceAddress*: string
+
 proc `$`*(config: Config): string =
   "Crawler:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
     " metricsAddress=" & $config.metricsAddress & " metricsPort=" & $config.metricsPort &
-    " dataDir=" & config.dataDir & " discPort=" & $config.discPort & " bootNodes=" &
-    config.bootNodes.mapIt($it).join(";") & " stepDelay=" & $config.stepDelayMs &
-    " revisitDelayMins=" & $config.revisitDelayMins & " expiryDelayMins=" &
-    $config.expiryDelayMins & " checkDelayMins=" & $config.checkDelayMins
+    " dataDir=" & config.dataDir & " discPort=" & $config.discPort & " dhtEnable=" &
+    $config.dhtEnable & " bootNodes=" & config.bootNodes.mapIt($it).join(";") &
+    " stepDelay=" & $config.stepDelayMs & " revisitDelayMins=" & $config.revisitDelayMins &
+    " expiryDelayMins=" & $config.expiryDelayMins & " checkDelayMins=" &
+    $config.checkDelayMins & " marketplaceEnable=" & $config.marketplaceEnable &
+    " ethProvider=" & config.ethProvider & " marketplaceAddress=" &
+    config.marketplaceAddress
 
 proc getDefaultTestnetBootNodes(): seq[string] =
   @[
@@ -86,6 +99,9 @@ proc stringToSpr(uri: string): SignedPeerRecord =
 proc getBootNodes(input: string): seq[SignedPeerRecord] =
   getBootNodeStrings(input).mapIt(stringToSpr(it))
 
+proc getEnable(input: string): bool =
+  input == "1"
+
 proc parseConfig*(): Config =
   let args = docopt(doc, version = crawlerFullVersion)
 
@@ -100,8 +116,12 @@ proc parseConfig*(): Config =
     dataDir: get("--dataDir"),
     discPort: Port(parseInt(get("--discoveryPort"))),
     bootNodes: getBootNodes(get("--bootNodes")),
+    dhtEnable: getEnable(get("--dhtEnable")),
     stepDelayMs: parseInt(get("--stepDelay")),
     revisitDelayMins: parseInt(get("--revisitDelay")),
     checkDelayMins: parseInt(get("--checkDelay")),
     expiryDelayMins: parseInt(get("--expiryDelay")),
+    marketplaceEnable: getEnable(get("--marketplaceEnable")),
+    ethProvider: get("--ethProvider"),
+    marketplaceAddress: get("--marketplaceAddress"),
   )
