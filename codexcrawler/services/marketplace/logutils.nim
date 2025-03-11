@@ -92,7 +92,8 @@ import std/sugar
 import std/typetraits
 
 import pkg/chronicles except toJson, `%`
-from pkg/libp2p import Cid, PeerId, SignedPeerRecord, MultiAddress, AddressInfo, init, `$`
+from pkg/libp2p import
+  Cid, PeerId, SignedPeerRecord, MultiAddress, AddressInfo, init, `$`
 from pkg/ethers import Address
 import pkg/questionable
 import pkg/questionable/results
