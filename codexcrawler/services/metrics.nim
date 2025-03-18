@@ -6,6 +6,8 @@ declareGauge(todoNodesGauge, "DHT nodes to be visited")
 declareGauge(okNodesGauge, "DHT nodes successfully contacted")
 declareGauge(nokNodesGauge, "DHT nodes failed to contact")
 
+declareGauge(slotFillGauge, "Marketplace recent slots filled")
+
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
 
@@ -13,6 +15,7 @@ type
     todoNodes: OnUpdateMetric
     okNodes: OnUpdateMetric
     nokNodes: OnUpdateMetric
+    onSlotFill: OnUpdateMetric
 
 proc startServer(metricsAddress: IpAddress, metricsPort: Port) =
   let metricsAddress = metricsAddress
@@ -34,6 +37,9 @@ method setOkNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
 method setNokNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.nokNodes(value.int64)
 
+method setSlotFill*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
+  m.onSlotFill(value.int64)
+
 proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
   startServer(metricsAddress, metricsPort)
 
@@ -47,5 +53,8 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
 
   proc onNok(value: int64) =
     nokNodesGauge.set(value)
+    
+  proc onSlotFill(value: int64) =
+    slotFillGauge.set(value)
 
-  return Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok)
+  return Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok, onSlotFill: onSlotFill)
