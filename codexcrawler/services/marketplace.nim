@@ -1,6 +1,5 @@
 import pkg/ethers
 import pkg/questionable
-
 import ./marketplace/market
 import ./marketplace/marketplace
 import ../config
@@ -15,15 +14,17 @@ type
     state: State
     market: ?OnChainMarket
 
-method getZkeyhash*(m: MarketplaceService): Future[?!string] {.async: (raises: []), base.} =
-  try:
-    if market =? m.market:
-      without zkeyhash =? await market.getZkeyHash():
-        return failure("Failed to get zkeyHash")
-      return success(zkeyhash)
-    return failure("MarketplaceService is not started")
-  except CatchableError as err:
-    return failure("Error while getting zkeyHash: " & err.msg)
+method getRecentSlotFillEvents*(m: MarketplaceService): Future[?!seq[SlotFilled]] {.async: (raises: []), base.} =
+  # There is (aprox.) 1 block every 10 seconds.
+  # 10 seconds * 6 * 60 = 3600 = 1 hour.
+  let blocksAgo = 6 * 60;
+
+  if market =? m.market:
+    try:
+      return success(await market.queryPastSlotFilledEvents(blocksAgo))
+    except CatchableError as err:
+      return failure(err.msg)
+  return failure("MarketplaceService is not started")
 
 method start*(m: MarketplaceService): Future[?!void] {.async.} =
   let provider = JsonRpcProvider.new(m.state.config.ethProvider)

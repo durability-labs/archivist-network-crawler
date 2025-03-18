@@ -12,10 +12,10 @@ logScope:
 
 type
   MockMarketplaceService* = ref object of MarketplaceService
-    zkeyHashReturn*: ?!string
+    recentSlotFillEventsReturn*: ?!seq[SlotFilled]
 
-method getZkeyhash*(m: MockMarketplaceService): Future[?!string] {.async: (raises: []).} =
-  return m.zkeyHashReturn
+method getRecentSlotFillEvents*(m: MarketplaceService): Future[?!seq[SlotFilled]] {.async: (raises: []).} =
+  return m.recentSlotFillEventsReturn
 
 proc createMockMarketplaceService*(): MockMarketplaceService =
   MockMarketplaceService()
