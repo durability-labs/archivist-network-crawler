@@ -5,6 +5,9 @@ import ./state
 import ./services/clock
 import ./services/metrics
 import ./services/dht
+
+import ./services/marketplace
+
 import ./component
 import ./components/crawler
 import ./components/timetracker
@@ -14,6 +17,8 @@ import ./components/todolist
 
 proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   var components: seq[Component] = newSeq[Component]()
+
+  aaa()
 
   let clock = createClock()
 
