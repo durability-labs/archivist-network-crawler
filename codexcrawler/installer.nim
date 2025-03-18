@@ -18,7 +18,7 @@ import ./components/todolist
 proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   var components: seq[Component] = newSeq[Component]()
 
-  aaa()
+  await aaa(state.config)
 
   let clock = createClock()
 
