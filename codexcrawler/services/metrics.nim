@@ -53,8 +53,9 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
 
   proc onNok(value: int64) =
     nokNodesGauge.set(value)
-    
+
   proc onSlotFill(value: int64) =
     slotFillGauge.set(value)
 
-  return Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok, onSlotFill: onSlotFill)
+  return
+    Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok, onSlotFill: onSlotFill)

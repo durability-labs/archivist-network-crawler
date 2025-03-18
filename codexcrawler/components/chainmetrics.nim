@@ -26,7 +26,7 @@ proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
   return success()
 
 method start*(c: ChainMetrics): Future[?!void] {.async.} =
-  info "Starting..."  
+  info "Starting..."
 
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
     return await c.step()
@@ -40,6 +40,9 @@ method stop*(c: ChainMetrics): Future[?!void] {.async.} =
   return success()
 
 proc new*(
-    T: type ChainMetrics, state: State, metrics: Metrics, marketplace: MarketplaceService
+    T: type ChainMetrics,
+    state: State,
+    metrics: Metrics,
+    marketplace: MarketplaceService,
 ): ChainMetrics =
   ChainMetrics(state: state, metrics: metrics, marketplace: marketplace)

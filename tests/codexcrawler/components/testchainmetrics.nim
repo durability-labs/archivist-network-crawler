@@ -24,7 +24,7 @@ suite "ChainMetrics":
     state = createMockState()
     metrics = createMockMetrics()
     marketplace = createMockMarketplaceService()
-    
+
     metrics.slotFill = -1
     chain = ChainMetrics.new(state, metrics, marketplace)
 
@@ -75,14 +75,9 @@ suite "ChainMetrics":
       metrics.slotFill == 0
 
   test "step should setSlotFill to the length of seq returned from getRecentSlotFillEvents":
-    let fills = @[
-      SlotFilled(),
-      SlotFilled(),
-      SlotFilled(),
-      SlotFilled()
-    ]
+    let fills = @[SlotFilled(), SlotFilled(), SlotFilled(), SlotFilled()]
 
-    marketplace.recentSlotFillEventsReturn = success(fills)    
+    marketplace.recentSlotFillEventsReturn = success(fills)
 
     await onStep()
 
