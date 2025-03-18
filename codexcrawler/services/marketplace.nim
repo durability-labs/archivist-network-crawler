@@ -4,27 +4,50 @@ import pkg/questionable
 import ./marketplace/market
 import ./marketplace/marketplace
 import ../config
+import ../component
+import ../state
 
-proc aaa*(config: Config) {.async.} = 
-  echo "aaa"
+logScope:
+  topics = "marketplace"
 
-  let provider = JsonRpcProvider.new(config.ethProvider)
-  without marketplaceAddress =? Address.init(config.marketplaceAddress):
-    raiseAssert("A!")
+type
+  MarketplaceService* = ref object of Component
+    state: State
+    market: ?OnChainMarket
+
+method getZkeyhash*(m: MarketplaceService): Future[?!string] {.async: (raises: []), base.} =
+  try:
+    if market =? m.market:
+      without zkeyhash =? await market.getZkeyHash():
+        return failure("Failed to get zkeyHash")
+      return success(zkeyhash)
+    return failure("MarketplaceService is not started")
+  except CatchableError as err:
+    return failure("Error while getting zkeyHash: " & err.msg)
+
+method start*(m: MarketplaceService): Future[?!void] {.async.} =
+  let provider = JsonRpcProvider.new(m.state.config.ethProvider)
+  without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):
+    return failure("Invalid MarketplaceAddress provided")
 
   let marketplace = Marketplace.new(marketplaceAddress, provider)
-  let market = OnChainMarket.new(marketplace)
+  m.market = some(OnChainMarket.new(marketplace))
 
-  echo "bbb"
-  echo "running with marketplace address: " & $marketplaceAddress
+  return success()
 
-  try:
-    without zkeyhash =? await market.getZkeyHash():
-      echo "couldn't get zkeyhash"
-      return
-    echo "zkeyhash=" & $zkeyhash
+method stop*(m: MarketplaceService): Future[?!void] {.async.} =
+  return success()
 
-  except CatchableError as err:
-    echo "catchable error! " & err.msg
+proc new(
+    T: type MarketplaceService,
+    state: State
+): MarketplaceService =
+  return MarketplaceService(
+    state: state,
+    market: none(OnChainMarket)
+  )
 
-  echo "ccc"
+proc createMarketplace*(state: State): MarketplaceService =
+  return MarketplaceService.new(
+    state
+  )

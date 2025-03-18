@@ -17,9 +17,6 @@ import ./components/todolist
 
 proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   var components: seq[Component] = newSeq[Component]()
-
-  await aaa(state.config)
-
   let clock = createClock()
 
   without dht =? (await createDht(state)), err:
@@ -31,6 +28,7 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   let
     metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
     todoList = createTodoList(state, metrics)
+    marketplace = createMarketplace(state)
 
   without dhtMetrics =? createDhtMetrics(state, metrics), err:
     return failure(err)
@@ -41,5 +39,6 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   components.add(Crawler.new(state, dht, todoList))
   components.add(TimeTracker.new(state, nodeStore, dht, clock))
   components.add(dhtMetrics)
+  components.add(marketplace)
 
   return success(components)
