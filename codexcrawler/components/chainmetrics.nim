@@ -9,7 +9,7 @@ import ../services/marketplace
 import ../component
 
 logScope:
-  topics = "ChainMetrics"
+  topics = "chainmetrics"
 
 type ChainMetrics* = ref object of Component
   state: State

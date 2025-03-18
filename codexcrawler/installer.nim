@@ -14,6 +14,7 @@ import ./components/timetracker
 import ./components/nodestore
 import ./components/dhtmetrics
 import ./components/todolist
+import ./components/chainmetrics
 
 proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   var components: seq[Component] = newSeq[Component]()
@@ -29,6 +30,7 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
     metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
     todoList = createTodoList(state, metrics)
     marketplace = createMarketplace(state)
+    chainMetrics = ChainMetrics.new(state, metrics, marketplace)
 
   without dhtMetrics =? createDhtMetrics(state, metrics), err:
     return failure(err)
@@ -40,5 +42,6 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   components.add(TimeTracker.new(state, nodeStore, dht, clock))
   components.add(dhtMetrics)
   components.add(marketplace)
+  components.add(chainMetrics)
 
   return success(components)
