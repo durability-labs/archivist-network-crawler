@@ -558,8 +558,14 @@ proc queryPastStorageRequestedEvents*(
 ): Future[seq[StorageRequested]] {.async.} =
   convertEthersError:
     let fromBlock = await market.contract.provider.pastBlockTag(blocksAgo)
-
     return await market.queryPastStorageRequestedEvents(fromBlock)
+
+proc queryPastStorageRequestedEvents*(
+    market: OnChainMarket, fromTime: int64
+): Future[seq[StorageRequested]] {.async.} =
+  convertEthersError:
+    let fromBlock = await market.contract.provider.blockNumberForEpoch(fromTime)
+    return await market.queryPastStorageRequestedEvents(BlockTag.init(fromBlock))
 
 proc slotCollateral*(
     market: OnChainMarket, collateralPerSlot: UInt256, slotState: SlotState

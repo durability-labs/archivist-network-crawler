@@ -28,6 +28,16 @@ method getRecentSlotFillEvents*(
   return failure("MarketplaceService is not started")
 
 method start*(m: MarketplaceService): Future[?!void] {.async.} =
+  # Todo:
+  # - subscribe to requestSubmitted -> add id to list
+  # - queryPastStorageRequestedEvents from 3 months ago (max duration) -> add ids to list
+  # for list:
+  #   - get status of request
+  #   if running:
+  #     - sum total bytes
+  #   else:
+  #     - remove from list
+
   let provider = JsonRpcProvider.new(m.state.config.ethProvider)
   without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):
     return failure("Invalid MarketplaceAddress provided")
