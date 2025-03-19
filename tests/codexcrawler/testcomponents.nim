@@ -1,5 +1,5 @@
 import ./components/testchainmetrics
-import ./components/testcrawler
+import ./components/testdhtcrawler
 import ./components/testdhtmetrics
 import ./components/testnodestore
 import ./components/testrequeststore

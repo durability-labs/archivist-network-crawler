@@ -9,7 +9,7 @@ import ./services/dht
 import ./services/marketplace
 
 import ./component
-import ./components/crawler
+import ./components/dhtcrawler
 import ./components/timetracker
 import ./components/nodestore
 import ./components/dhtmetrics
@@ -38,7 +38,7 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   components.add(dht)
   components.add(todoList)
   components.add(nodeStore)
-  components.add(Crawler.new(state, dht, todoList))
+  components.add(DhtCrawler.new(state, dht, todoList))
   components.add(TimeTracker.new(state, nodeStore, dht, clock))
   components.add(dhtMetrics)
   components.add(marketplace)

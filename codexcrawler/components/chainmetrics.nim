@@ -26,7 +26,7 @@ proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
   return success()
 
 method start*(c: ChainMetrics): Future[?!void] {.async.} =
-  info "Starting..."
+  info "starting..."
 
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
     return await c.step()

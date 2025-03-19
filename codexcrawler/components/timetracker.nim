@@ -57,7 +57,7 @@ proc raiseRoutingTableNodes(t: TimeTracker): Future[?!void] {.async: (raises: []
   return success()
 
 method start*(t: TimeTracker): Future[?!void] {.async.} =
-  info "Starting..."
+  info "starting..."
 
   proc onCheckRevisitAndExpiry(): Future[?!void] {.async: (raises: []), gcsafe.} =
     await t.checkRevisitsAndExpiry()

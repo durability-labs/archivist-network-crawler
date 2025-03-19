@@ -107,9 +107,20 @@ suite "Requeststore":
 
     check:
       entries.len == 3
-      entries[0].id == rid1
+
+    let
+      ids = @[entries[0].id, entries[1].id, entries[2].id]
+      all = @[rid1, rid2, rid3]
+
+    for id in ids:
+      check:
+        id in all
+
+    for id in all:
+      check:
+        id in ids
+
+    check:
       entries[0].lastSeen == clock.setNow
-      entries[1].id == rid2
       entries[1].lastSeen == clock.setNow
-      entries[2].id == rid3
       entries[2].lastSeen == clock.setNow

@@ -46,7 +46,7 @@ proc handleDeleteEvent(d: DhtMetrics, nids: seq[Nid]): Future[?!void] {.async.} 
   return success()
 
 method start*(d: DhtMetrics): Future[?!void] {.async.} =
-  info "Starting..."
+  info "starting..."
   ?await d.ok.load()
   ?await d.nok.load()
 

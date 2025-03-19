@@ -3,7 +3,7 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/asynctest/chronos/unittest
 
-import ../../../codexcrawler/components/crawler
+import ../../../codexcrawler/components/dhtcrawler
 import ../../../codexcrawler/services/dht
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
@@ -13,14 +13,14 @@ import ../mocks/mockdht
 import ../mocks/mocktodolist
 import ../helpers
 
-suite "Crawler":
+suite "DhtCrawler":
   var
     nid1: Nid
     nid2: Nid
     state: MockState
     todo: MockTodoList
     dht: MockDht
-    crawler: Crawler
+    crawler: DhtCrawler
 
   setup:
     nid1 = genNid()
@@ -29,7 +29,7 @@ suite "Crawler":
     todo = createMockTodoList()
     dht = createMockDht()
 
-    crawler = Crawler.new(state, dht, todo)
+    crawler = DhtCrawler.new(state, dht, todo)
 
     (await crawler.start()).tryGet()
 

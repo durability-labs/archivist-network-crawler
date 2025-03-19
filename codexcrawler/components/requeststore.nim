@@ -119,7 +119,7 @@ method iterateAll*(
   return success()
 
 method start*(s: RequestStore): Future[?!void] {.async.} =
-  info "Starting..."
+  info "starting..."
   return success()
 
 method stop*(s: RequestStore): Future[?!void] {.async.} =

@@ -12,15 +12,15 @@ import ../state
 import ../utils/asyncdataevent
 
 logScope:
-  topics = "crawler"
+  topics = "dhtcrawler"
 
-type Crawler* = ref object of Component
+type DhtCrawler* = ref object of Component
   state: State
   dht: Dht
   todo: TodoList
 
 proc raiseCheckEvent(
-    c: Crawler, nid: Nid, success: bool
+    c: DhtCrawler, nid: Nid, success: bool
 ): Future[?!void] {.async: (raises: []).} =
   let event = DhtNodeCheckEventData(id: nid, isOk: success)
   if err =? (await c.state.events.dhtNodeCheck.fire(event)).errorOption:
@@ -28,7 +28,7 @@ proc raiseCheckEvent(
     return failure(err)
   return success()
 
-proc step(c: Crawler): Future[?!void] {.async: (raises: []).} =
+proc step(c: DhtCrawler): Future[?!void] {.async: (raises: []).} =
   without nid =? (await c.todo.pop()), err:
     error "failed to pop todolist", err = err.msg
     return failure(err)
@@ -46,8 +46,8 @@ proc step(c: Crawler): Future[?!void] {.async: (raises: []).} =
 
   return success()
 
-method start*(c: Crawler): Future[?!void] {.async.} =
-  info "Starting crawler..."
+method start*(c: DhtCrawler): Future[?!void] {.async.} =
+  info "starting..."
 
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =
     await c.step()
@@ -57,8 +57,8 @@ method start*(c: Crawler): Future[?!void] {.async.} =
 
   return success()
 
-method stop*(c: Crawler): Future[?!void] {.async.} =
+method stop*(c: DhtCrawler): Future[?!void] {.async.} =
   return success()
 
-proc new*(T: type Crawler, state: State, dht: Dht, todo: TodoList): Crawler =
-  Crawler(state: state, dht: dht, todo: todo)
+proc new*(T: type DhtCrawler, state: State, dht: Dht, todo: TodoList): DhtCrawler =
+  DhtCrawler(state: state, dht: dht, todo: todo)
