@@ -87,3 +87,29 @@ suite "Requeststore":
 
     check:
       isStored == false
+
+  test "iterateAll yields all entries":
+    let
+      rid1 = genRid()
+      rid2 = genRid()
+      rid3 = genRid()
+
+    (await store.update(rid1)).tryGet()
+    (await store.update(rid2)).tryGet()
+    (await store.update(rid3)).tryGet()
+
+    var entries = newSeq[RequestEntry]()
+    proc onEntry(entry: RequestEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
+      entries.add(entry)
+      return success()
+
+    (await store.iterateAll(onEntry)).tryGet()
+
+    check:
+      entries.len == 3
+      entries[0].id == rid1
+      entries[0].lastSeen == clock.setNow
+      entries[1].id == rid2
+      entries[1].lastSeen == clock.setNow
+      entries[2].id == rid3
+      entries[2].lastSeen == clock.setNow

@@ -62,80 +62,61 @@ proc decode*(T: type RequestEntry, bytes: seq[byte]): ?!T =
     return success(RequestEntry(lastSeen: 0))
   return RequestEntry.fromBytes(bytes)
 
-proc update*(s: RequestStore, rid: Rid): Future[?!void] {.async.} =
+method update*(
+    s: RequestStore, rid: Rid
+): Future[?!void] {.async: (raises: []), base.} =
   without key =? Key.init(requeststoreName / $rid), err:
     error "failed to format key", err = err.msg
     return failure(err)
 
   let entry = RequestEntry(id: rid, lastSeen: s.clock.now)
-  ?await s.store.put(key, entry)
+  try:
+    ?await s.store.put(key, entry)
+  except CatchableError as exc:
+    return failure(exc.msg)
   trace "Request entry updated", id = $rid
   return success()
 
-proc remove*(s: RequestStore, rid: Rid): Future[?!void] {.async.} =
+method remove*(
+    s: RequestStore, rid: Rid
+): Future[?!void] {.async: (raises: []), base.} =
   without key =? Key.init(requeststoreName / $rid), err:
     error "failed to format key", err = err.msg
     return failure(err)
 
-  ?await s.store.delete(key)
+  try:
+    ?await s.store.delete(key)
+  except CatchableError as exc:
+    return failure(exc.msg)
   trace "Request entry removed", id = $rid
   return success()
 
-# proc storeNodeIsNew(s: RequestStore, nid: Nid): Future[?!bool] {.async.} =
-#   without key =? Key.init(requeststoreName / $nid), err:
-#     error "failed to format key", err = err.msg
-#     return failure(err)
-#   without exists =? (await s.store.has(key)), err:
-#     error "failed to check store for key", err = err.msg
-#     return failure(err)
+method iterateAll*(
+    s: RequestStore, onNode: OnRequestEntry
+): Future[?!void] {.async: (raises: []), base.} =
+  without queryKey =? Key.init(requeststoreName), err:
+    error "failed to format key", err = err.msg
+    return failure(err)
+  try:
+    without iter =? (await query[RequestEntry](s.store, Query.init(queryKey))), err:
+      error "failed to create query", err = err.msg
+      return failure(err)
 
-#   if not exists:
-#     let entry = RequestEntry(id: nid, lastVisit: 0, firstInactive: 0)
-#     ?await s.store.put(key, entry)
-#     info "New node", nodeId = $nid
+    while not iter.finished:
+      without item =? (await iter.next()), err:
+        error "failure during query iteration", err = err.msg
+        return failure(err)
+      without value =? item.value, err:
+        error "failed to get value from iterator", err = err.msg
+        return failure(err)
 
-#   return success(not exists)
+      if value.lastSeen > 0:
+        ?await onNode(value)
 
-# proc deleteEntry(s: RequestStore, nid: Nid): Future[?!bool] {.async.} =
-#   without key =? Key.init(requeststoreName / $nid), err:
-#     error "failed to format key", err = err.msg
-#     return failure(err)
-#   without exists =? (await s.store.has(key)), err:
-#     error "failed to check store for key", err = err.msg, key = $key
-#     return failure(err)
-
-#   if exists:
-#     ?await s.store.delete(key)
-
-#   return success(exists)
-
-# method iterateAll*(
-#     s: RequestStore, onNode: OnRequestEntry
-# ): Future[?!void] {.async: (raises: []), base.} =
-#   without queryKey =? Key.init(requeststoreName), err:
-#     error "failed to format key", err = err.msg
-#     return failure(err)
-#   try:
-#     without iter =? (await query[RequestEntry](s.store, Query.init(queryKey))), err:
-#       error "failed to create query", err = err.msg
-#       return failure(err)
-
-#     while not iter.finished:
-#       without item =? (await iter.next()), err:
-#         error "failure during query iteration", err = err.msg
-#         return failure(err)
-#       without value =? item.value, err:
-#         error "failed to get value from iterator", err = err.msg
-#         return failure(err)
-
-#       if value.lastSeen > 0:
-#         ?await onNode(value)
-
-#       await sleepAsync(1.millis)
-#   except CatchableError as exc:
-#     return failure(exc.msg)
-
-#   return success()
+      await sleepAsync(1.millis)
+  except CatchableError as exc:
+    return failure(exc.msg)
+  return success()
 
 method start*(s: RequestStore): Future[?!void] {.async.} =
   info "Starting..."
