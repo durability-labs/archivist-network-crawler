@@ -17,6 +17,20 @@ type ChainMetrics* = ref object of Component
   marketplace: MarketplaceService
 
 proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
+  # replace slotFills entirely:
+  # iterate all requests in requestStore:
+    # get state of request on chain
+    # if failed/canceled/error:
+      # if last-seen is old (1month?3months?)
+        # delete entry
+    # else (request is running):
+      # count:
+        # total running
+        # total num slots
+        # total size of request
+  # iter finished: update metrics!
+
+
   without slotFills =? (await c.marketplace.getRecentSlotFillEvents()), err:
     trace "Unable to get recent slotFill events from chain", err = err.msg
     return success() # We don't propagate this error.
