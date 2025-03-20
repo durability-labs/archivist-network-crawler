@@ -25,9 +25,9 @@ Options:
   --revisitDelay=<m>                Delay in minutes after which a node can be revisited [default: 60]
   --checkDelay=<m>                  Delay with which the 'revisitDelay' is checked for all known nodes [default: 10]
   --expiryDelay=<m>                 Delay in minutes after which unresponsive nodes are discarded [default: 1440] (24h)
+  --marketplaceEnable=<e>           Set to "1" to enable marketplace metrics [default: 1]
   --ethProvider=<a>                 Address including http(s) or ws of the eth provider
   --marketplaceAddress=<a>          Eth address of Codex contracts deployment
-  --marketplaceEnable=<e>           Set to "1" to enable marketplace metrics [default: 1]
 """
 
 import strutils

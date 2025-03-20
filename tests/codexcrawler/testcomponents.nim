@@ -1,3 +1,4 @@
+import ./components/testchaincrawler
 import ./components/testchainmetrics
 import ./components/testdhtcrawler
 import ./components/testdhtmetrics

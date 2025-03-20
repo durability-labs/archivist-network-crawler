@@ -31,12 +31,12 @@ proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
   # iter finished: update metrics!
 
 
-  without slotFills =? (await c.marketplace.getRecentSlotFillEvents()), err:
-    trace "Unable to get recent slotFill events from chain", err = err.msg
-    return success() # We don't propagate this error.
-    # The call is allowed to fail and the app should continue as normal.
+  # without slotFills =? (await c.marketplace.getRecentSlotFillEvents()), err:
+  #   trace "Unable to get recent slotFill events from chain", err = err.msg
+  #   return success() # We don't propagate this error.
+  #   # The call is allowed to fail and the app should continue as normal.
 
-  c.metrics.setSlotFill(slotFills.len)
+  # c.metrics.setSlotFill(slotFills.len)
   return success()
 
 method start*(c: ChainMetrics): Future[?!void] {.async.} =

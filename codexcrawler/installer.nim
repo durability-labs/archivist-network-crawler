@@ -29,7 +29,7 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   let
     metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
     todoList = createTodoList(state, metrics)
-    marketplace = createMarketplace(state)
+    marketplace = createMarketplace(state, clock)
     chainMetrics = ChainMetrics.new(state, metrics, marketplace)
 
   without dhtMetrics =? createDhtMetrics(state, metrics), err:
