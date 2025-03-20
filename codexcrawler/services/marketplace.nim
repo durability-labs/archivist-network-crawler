@@ -18,9 +18,24 @@ type
     market: ?OnChainMarket
     clock: Clock
   OnNewRequest* = proc(id: Rid): Future[?!void] {.async: (raises: []), gcsafe.}
+  RequestInfo* = ref object
+    slots*: uint64
+    slotSize*: uint64
 
 proc notStarted() =
   raiseAssert("MarketplaceService was called before it was started.")
+
+proc fetchRequestInfo(market: OnChainMarket, rid: Rid): Future[?RequestInfo] {.async: (raises: []).} =
+  try:
+    let request = await market.getRequest(rid)
+    if r =? request:
+      return some(RequestInfo(
+        slots: r.ask.slots,
+        slotSize: r.ask.slotSize
+      ))
+  except CatchableError as exc:
+    trace "Failed to get request info", err = exc.msg
+  return none(RequestInfo)
 
 method subscribeToNewRequests*(m: MarketplaceService, onNewRequest: OnNewRequest): Future[?!void] {.async: (raises: []), base.} =
   proc resultWrapper(rid: Rid): Future[void] {.async.} =
@@ -54,6 +69,21 @@ method iteratePastNewRequestEvents*(m: MarketplaceService, onNewRequest: OnNewRe
           return failure(error.msg)
     except CatchableError as exc:
       return failure(exc.msg)
+  else:
+    notStarted()
+
+method getRequestInfo*(m: MarketplaceService, rid: Rid): Future[?RequestInfo] {.async: (raises: []), base.} =
+  # If the request id exists and is running, fetch the request object and return the info object.
+  # otherwise, return none.
+  if market =? m.market:
+    try:
+      let state = await market.requestState(rid)
+      if s =? state:
+        if s == RequestState.Started:
+          return await market.fetchRequestInfo(rid)
+    except CatchableError as exc:
+      trace "Failed to get request state", err = exc.msg
+    return none(RequestInfo)
   else:
     notStarted()
 

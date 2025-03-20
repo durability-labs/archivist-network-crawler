@@ -6,6 +6,7 @@ import pkg/questionable/results
 import ../state
 import ../services/metrics
 import ../services/marketplace
+import ../components/requeststore
 import ../component
 
 logScope:
@@ -14,10 +15,10 @@ logScope:
 type ChainMetrics* = ref object of Component
   state: State
   metrics: Metrics
+  store: RequestStore
   marketplace: MarketplaceService
 
 proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
-  # replace slotFills entirely:
   # iterate all requests in requestStore:
     # get state of request on chain
     # if failed/canceled/error:
@@ -29,14 +30,6 @@ proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
         # total num slots
         # total size of request
   # iter finished: update metrics!
-
-
-  # without slotFills =? (await c.marketplace.getRecentSlotFillEvents()), err:
-  #   trace "Unable to get recent slotFill events from chain", err = err.msg
-  #   return success() # We don't propagate this error.
-  #   # The call is allowed to fail and the app should continue as normal.
-
-  # c.metrics.setSlotFill(slotFills.len)
   return success()
 
 method start*(c: ChainMetrics): Future[?!void] {.async.} =
@@ -57,6 +50,7 @@ proc new*(
     T: type ChainMetrics,
     state: State,
     metrics: Metrics,
-    marketplace: MarketplaceService,
+    store: RequestStore,
+    marketplace: MarketplaceService
 ): ChainMetrics =
-  ChainMetrics(state: state, metrics: metrics, marketplace: marketplace)
+  ChainMetrics(state: state, metrics: metrics, store: store, marketplace: marketplace)

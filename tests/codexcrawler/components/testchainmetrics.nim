@@ -1,85 +1,110 @@
-# import pkg/chronos
-# import pkg/questionable
-# import pkg/questionable/results
-# import pkg/asynctest/chronos/unittest
-# import std/sequtils
+import pkg/chronos
+import pkg/questionable
+import pkg/questionable/results
+import pkg/asynctest/chronos/unittest
 
-# import ../../../codexcrawler/components/chainmetrics
-# import ../../../codexcrawler/services/marketplace/market
-# import ../../../codexcrawler/types
-# import ../../../codexcrawler/state
-# import ../mocks/mockstate
-# import ../mocks/mockmetrics
-# import ../mocks/mockmarketplace
-# import ../helpers
+import ../../../codexcrawler/components/chainmetrics
+import ../../../codexcrawler/components/requeststore
+import ../../../codexcrawler/services/marketplace
+import ../../../codexcrawler/types
+import ../mocks/mockstate
+import ../mocks/mockmetrics
+import ../mocks/mockrequeststore
+import ../mocks/mockmarketplace
+import ../helpers
 
-# suite "ChainMetrics":
-#   var
-#     state: MockState
-#     metrics: MockMetrics
-#     marketplace: MockMarketplaceService
-#     chain: ChainMetrics
+suite "ChainMetrics":
+  var
+    state: MockState
+    metrics: MockMetrics
+    store: MockRequestStore
+    marketplace: MockMarketplaceService
+    chain: ChainMetrics
 
-#   setup:
-#     state = createMockState()
-#     metrics = createMockMetrics()
-#     marketplace = createMockMarketplaceService()
+  setup:
+    state = createMockState()
+    metrics = createMockMetrics()
+    store = createMockRequestStore()
+    marketplace = createMockMarketplaceService()
 
-#     metrics.slotFill = -1
-#     chain = ChainMetrics.new(state, metrics, marketplace)
+    chain = ChainMetrics.new(state, metrics, store, marketplace)
 
-#     (await chain.start()).tryGet()
+    (await chain.start()).tryGet()
 
-#   teardown:
-#     (await chain.stop()).tryGet()
-#     state.checkAllUnsubscribed()
+  teardown:
+    (await chain.stop()).tryGet()
+    state.checkAllUnsubscribed()
 
-#   proc onStep() {.async.} =
-#     (await state.steppers[0]()).tryGet()
+  proc onStep() {.async.} =
+    (await state.steppers[0]()).tryGet()
 
-#   test "start should start stepper for 10 minutes":
-#     check:
-#       state.delays.len == 1
-#       state.delays[0] == 10.minutes
+  test "start should start stepper for 10 minutes":
+    check:
+      state.delays.len == 1
+      state.delays[0] == 10.minutes
 
-#   test "onStep is not activated when config.marketplaceEnable is false":
-#     # Recreate chainMetrics, reset mockstate:
-#     (await chain.stop()).tryGet()
-#     state.steppers = @[]
-#     # disable marketplace:
-#     state.config.marketplaceEnable = false
-#     (await chain.start()).tryGet()
+  # iterate all requests in requestStore:
+    # get state of request on chain
+    # if failed/canceled/error:
+      # if last-seen is old (1month?3months?)
+        # delete entry
+    # else (request is running):
+      # count:
+        # total running
+        # total num slots
+        # total size of request
+  # iter finished: update metrics!
 
-#     check:
-#       state.steppers.len == 0
+  test "onStep should remove non-running requests from request store":
+    let rid = genRid()
+    store.iterateEntries.add(RequestEntry(id: rid))
 
-#   test "step should not call setSlotFill when getRecentSlotFillEvents fails":
-#     let testValue = -123
-#     metrics.slotFill = testValue
+    marketplace.requestInfoReturns = none(RequestInfo)
 
-#     marketplace.recentSlotFillEventsReturn = seq[SlotFilled].failure("testfailure")
+    await onStep()
 
-#     await onStep()
+    check:
+      marketplace.requestInfoRid == rid
+      store.removeRid == rid
+    
+  test "onStep should count the number of active requests":
+    let rid1 = genRid()
+    let rid2 = genRid()
+    store.iterateEntries.add(RequestEntry(id: rid1))
+    store.iterateEntries.add(RequestEntry(id: rid2))
 
-#     check:
-#       metrics.slotFill == testValue
+    marketplace.requestInfoReturns = some(RequestInfo())
 
-#   test "step should setSlotFill to zero when getRecentSlotFillEvents returns empty seq":
-#     metrics.slotFill = -123
+    await onStep()
 
-#     marketplace.recentSlotFillEventsReturn = success(newSeq[SlotFilled]())
+    check:
+      metrics.requests == 2
 
-#     await onStep()
+  test "onStep should count the number of active slots":
+    let rid = genRid()
+    store.iterateEntries.add(RequestEntry(id: rid))
 
-#     check:
-#       metrics.slotFill == 0
+    let info = RequestInfo(
+      slots: 123
+    )
+    marketplace.requestInfoReturns = some(info)
 
-#   test "step should setSlotFill to the length of seq returned from getRecentSlotFillEvents":
-#     let fills = @[SlotFilled(), SlotFilled(), SlotFilled(), SlotFilled()]
+    await onStep()
 
-#     marketplace.recentSlotFillEventsReturn = success(fills)
+    check:
+      metrics.slots == info.slots.int
 
-#     await onStep()
+  test "onStep should count the total size of active slots":
+    let rid = genRid()
+    store.iterateEntries.add(RequestEntry(id: rid))
 
-#     check:
-#       metrics.slotFill == fills.len
+    let info = RequestInfo(
+      slots: 12,
+      slotSize: 23
+    )
+    marketplace.requestInfoReturns = some(info)
+
+    await onStep()
+
+    check:
+      metrics.totalSize == (info.slots * info.slotSize).int

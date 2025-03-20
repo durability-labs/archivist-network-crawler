@@ -1,5 +1,4 @@
 import std/random
-import std/sequtils
 import std/typetraits
 import pkg/stint
 import pkg/stew/byteutils

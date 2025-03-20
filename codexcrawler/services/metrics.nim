@@ -6,7 +6,9 @@ declareGauge(todoNodesGauge, "DHT nodes to be visited")
 declareGauge(okNodesGauge, "DHT nodes successfully contacted")
 declareGauge(nokNodesGauge, "DHT nodes failed to contact")
 
-declareGauge(slotFillGauge, "Marketplace recent slots filled")
+declareGauge(requestsGauge, "Marketplace active storage requests")
+declareGauge(requestSlotsGauge, "Marketplace active storage request slots")
+declareGauge(totalStorageSizeGauge, "Marketplace total bytes stored in active storage requests")
 
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
@@ -15,7 +17,10 @@ type
     todoNodes: OnUpdateMetric
     okNodes: OnUpdateMetric
     nokNodes: OnUpdateMetric
-    onSlotFill: OnUpdateMetric
+
+    onRequests: OnUpdateMetric
+    onRequestSlots: OnUpdateMetric
+    onTotalSize: OnUpdateMetric
 
 proc startServer(metricsAddress: IpAddress, metricsPort: Port) =
   let metricsAddress = metricsAddress
@@ -37,8 +42,14 @@ method setOkNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
 method setNokNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.nokNodes(value.int64)
 
-method setSlotFill*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
-  m.onSlotFill(value.int64)
+method setRequests*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
+  m.onRequests(value.int64)
+
+method setRequestSlots*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
+  m.onRequestSlots(value.int64)
+
+method setTotalSize*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
+  m.onTotalSize(value.int64)
 
 proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
   startServer(metricsAddress, metricsPort)
@@ -54,8 +65,14 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
   proc onNok(value: int64) =
     nokNodesGauge.set(value)
 
-  proc onSlotFill(value: int64) =
-    slotFillGauge.set(value)
+  proc onRequests(value: int64) =
+    requestsGauge.set(value)
+
+  proc onRequestSlots(value: int64) =
+    requestSlotsGauge.set(value)
+
+  proc onTotalSize(value: int64) =
+    totalStorageSizeGauge.set(value)
 
   return
-    Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok, onSlotFill: onSlotFill)
+    Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok, onRequests: onRequests, onRequestSlots: onRequestSlots, onTotalSize: onTotalSize)
