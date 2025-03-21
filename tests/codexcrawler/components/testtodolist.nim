@@ -23,8 +23,7 @@ suite "TodoList":
     metrics = createMockMetrics()
 
     todo = TodoList.new(state, metrics)
-
-    (await todo.start()).tryGet()
+    (await todo.awake()).tryGet()
 
   teardown:
     (await todo.stop()).tryGet()

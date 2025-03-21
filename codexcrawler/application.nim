@@ -37,8 +37,14 @@ proc initializeApp(app: Application, config: Config): Future[?!void] {.async.} =
   app.components = components
 
   for c in components:
+    if err =? (await c.awake()).errorOption:
+      error "Failed during component awake", err = err.msg
+      return failure(err)
+
+  for c in components:
     if err =? (await c.start()).errorOption:
-      error "Failed to start component", err = err.msg
+      error "Failed during component start", err = err.msg
+      return failure(err)
 
   return success()
 

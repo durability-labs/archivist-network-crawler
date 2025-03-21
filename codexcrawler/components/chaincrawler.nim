@@ -25,11 +25,11 @@ method start*(c: ChainCrawler): Future[?!void] {.async.} =
   proc onRequest(rid: Rid): Future[?!void] {.async: (raises: []).} =
     return await c.onNewRequest(rid)
 
+  # Normally subscriptions must be done in awake.
+  # Marketplace is a little different: It uses awake to set up its connections.
+  # And so it can't handle subscribes until we're in 'start'.
   ?await c.marketplace.subscribeToNewRequests(onRequest)
   ?await c.marketplace.iteratePastNewRequestEvents(onRequest)
-  return success()
-
-method stop*(c: ChainCrawler): Future[?!void] {.async.} =
   return success()
 
 proc new*(

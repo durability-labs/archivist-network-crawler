@@ -71,15 +71,14 @@ method start*(c: ChainMetrics): Future[?!void] {.async.} =
 
   return success()
 
-method stop*(c: ChainMetrics): Future[?!void] {.async.} =
-  return success()
-
 proc new*(
     T: type ChainMetrics,
     state: State,
     metrics: Metrics,
     store: RequestStore,
     marketplace: MarketplaceService,
-    clock: Clock
+    clock: Clock,
 ): ChainMetrics =
-  ChainMetrics(state: state, metrics: metrics, store: store, marketplace: marketplace, clock: clock)
+  ChainMetrics(
+    state: state, metrics: metrics, store: store, marketplace: marketplace, clock: clock
+  )

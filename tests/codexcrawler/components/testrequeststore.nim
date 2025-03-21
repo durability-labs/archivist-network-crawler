@@ -30,10 +30,7 @@ suite "Requeststore":
 
     store = RequestStore.new(state, ds, clock)
 
-    (await store.start()).tryGet()
-
   teardown:
-    (await store.stop()).tryGet()
     (await ds.close()).tryGet()
     state.checkAllUnsubscribed()
     removeDir(dsPath)

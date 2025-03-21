@@ -30,7 +30,6 @@ suite "Nodestore":
     clock = createMockClock()
 
     store = NodeStore.new(state, ds, clock)
-
     (await store.start()).tryGet()
 
   teardown:

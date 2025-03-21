@@ -27,16 +27,10 @@ suite "ChainCrawler":
     marketplace = createMockMarketplaceService()
 
     crawler = ChainCrawler.new(state, store, marketplace)
-
     (await crawler.start()).tryGet()
 
   teardown:
-    (await crawler.stop()).tryGet()
     state.checkAllUnsubscribed()
-
-  # subscribe to newrequests
-  # iterate past requests on start-up
-  # push them into the request store
 
   test "start should subscribe to new requests":
     check:

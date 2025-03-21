@@ -1,12 +1,19 @@
 import pkg/chronos
 import pkg/questionable/results
 
-import ./state
-
 type Component* = ref object of RootObj
 
+method awake*(c: Component): Future[?!void] {.async, base.} =
+  # Awake is called on all components in an unspecified order.
+  # Use this method to subscribe/connect to other components.
+  return success()
+
 method start*(c: Component): Future[?!void] {.async, base.} =
-  raiseAssert("call to abstract method: component.start")
+  # Start is called on all components in an unspecified order.
+  # Is is guaranteed that all components have already successfulled handled 'awake'.
+  # Use this method to begin the work of this component.
+  return success()
 
 method stop*(c: Component): Future[?!void] {.async, base.} =
-  raiseAssert("call to abstract method: component.stop")
+  # Use this method to stop, unsubscribe, and clean up any resources.
+  return success()

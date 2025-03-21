@@ -22,11 +22,5 @@ method deleteEntries*(
   s.nodesToDelete = nids
   return success()
 
-method start*(s: MockNodeStore): Future[?!void] {.async.} =
-  return success()
-
-method stop*(s: MockNodeStore): Future[?!void] {.async.} =
-  return success()
-
 proc createMockNodeStore*(): MockNodeStore =
   MockNodeStore(nodesToIterate: newSeq[NodeEntry](), nodesToDelete: newSeq[Nid]())

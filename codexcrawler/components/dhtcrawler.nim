@@ -57,8 +57,5 @@ method start*(c: DhtCrawler): Future[?!void] {.async.} =
 
   return success()
 
-method stop*(c: DhtCrawler): Future[?!void] {.async.} =
-  return success()
-
 proc new*(T: type DhtCrawler, state: State, dht: Dht, todo: TodoList): DhtCrawler =
   DhtCrawler(state: state, dht: dht, todo: todo)

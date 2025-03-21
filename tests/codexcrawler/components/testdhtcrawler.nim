@@ -30,11 +30,9 @@ suite "DhtCrawler":
     dht = createMockDht()
 
     crawler = DhtCrawler.new(state, dht, todo)
-
     (await crawler.start()).tryGet()
 
   teardown:
-    (await crawler.stop()).tryGet()
     state.checkAllUnsubscribed()
 
   proc onStep() {.async.} =
@@ -57,7 +55,6 @@ suite "DhtCrawler":
 
   test "onStep is not activated when config.dhtEnable is false":
     # Recreate crawler, reset mockstate:
-    (await crawler.stop()).tryGet()
     state.steppers = @[]
     # disable DHT:
     state.config.dhtEnable = false

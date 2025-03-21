@@ -47,11 +47,9 @@ suite "TimeTracker":
     state.config.expiryDelayMins = 22
 
     time = TimeTracker.new(state, store, dht, clock)
-
     (await time.start()).tryGet()
 
   teardown:
-    (await time.stop()).tryGet()
     await state.events.nodesToRevisit.unsubscribe(sub)
     state.checkAllUnsubscribed()
 

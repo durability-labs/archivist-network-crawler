@@ -31,11 +31,9 @@ suite "ChainMetrics":
     clock = createMockClock()
 
     chain = ChainMetrics.new(state, metrics, store, marketplace, clock)
-
     (await chain.start()).tryGet()
 
   teardown:
-    (await chain.stop()).tryGet()
     state.checkAllUnsubscribed()
 
   proc onStep() {.async.} =

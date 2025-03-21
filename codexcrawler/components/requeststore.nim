@@ -117,13 +117,6 @@ method iterateAll*(
     return failure(exc.msg)
   return success()
 
-method start*(s: RequestStore): Future[?!void] {.async.} =
-  info "starting..."
-  return success()
-
-method stop*(s: RequestStore): Future[?!void] {.async.} =
-  return success()
-
 proc new*(
     T: type RequestStore, state: State, store: TypedDatastore, clock: Clock
 ): RequestStore =

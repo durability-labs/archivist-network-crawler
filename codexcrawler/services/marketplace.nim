@@ -53,11 +53,11 @@ method subscribeToNewRequests*(
   if market =? m.market:
     try:
       discard await market.subscribeRequests(onRequest)
+      return success()
     except CatchableError as exc:
       return failure(exc.msg)
   else:
     notStarted()
-  return success()
 
 method iteratePastNewRequestEvents*(
     m: MarketplaceService, onNewRequest: OnNewRequest
@@ -73,6 +73,7 @@ method iteratePastNewRequestEvents*(
       for request in requests:
         if error =? (await onNewRequest(Rid(request.requestId))).errorOption:
           return failure(error.msg)
+      return success()
     except CatchableError as exc:
       return failure(exc.msg)
   else:
@@ -95,17 +96,13 @@ method getRequestInfo*(
   else:
     notStarted()
 
-method start*(m: MarketplaceService): Future[?!void] {.async.} =
+method awake*(m: MarketplaceService): Future[?!void] {.async.} =
   let provider = JsonRpcProvider.new(m.state.config.ethProvider)
   without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):
     return failure("Invalid MarketplaceAddress provided")
 
   let marketplace = Marketplace.new(marketplaceAddress, provider)
   m.market = some(OnChainMarket.new(marketplace))
-
-  return success()
-
-method stop*(m: MarketplaceService): Future[?!void] {.async.} =
   return success()
 
 proc new(T: type MarketplaceService, state: State, clock: Clock): MarketplaceService =

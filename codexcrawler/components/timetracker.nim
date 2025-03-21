@@ -71,9 +71,6 @@ method start*(t: TimeTracker): Future[?!void] {.async.} =
   await t.state.whileRunning(onRoutingTable, 30.minutes)
   return success()
 
-method stop*(t: TimeTracker): Future[?!void] {.async.} =
-  return success()
-
 proc new*(
     T: type TimeTracker, state: State, nodestore: NodeStore, dht: Dht, clock: Clock
 ): TimeTracker =
