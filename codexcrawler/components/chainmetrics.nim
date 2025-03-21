@@ -6,6 +6,7 @@ import pkg/questionable/results
 import ../state
 import ../services/metrics
 import ../services/marketplace
+import ../services/clock
 import ../components/requeststore
 import ../component
 import ../types
@@ -19,11 +20,16 @@ type
     metrics: Metrics
     store: RequestStore
     marketplace: MarketplaceService
+    clock: Clock
 
   Update = ref object
     numRequests: int
     numSlots: int
     totalSize: int64
+
+proc isOld(c: ChainMetrics, entry: RequestEntry): bool =
+  let oneDay = 60 * 60 * 24
+  return entry.lastSeen < (c.clock.now - oneDay.uint64)
 
 proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
   var update = Update(numRequests: 0, numSlots: 0, totalSize: 0)
@@ -35,7 +41,8 @@ proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
       update.numSlots += info.slots.int
       update.totalSize += (info.slots * info.slotSize).int64
     else:
-      ?await c.store.remove(entry.id)
+      if c.isOld(entry):
+        ?await c.store.remove(entry.id)
     return success()
 
   ?await c.store.iterateAll(onRequest)
@@ -73,5 +80,6 @@ proc new*(
     metrics: Metrics,
     store: RequestStore,
     marketplace: MarketplaceService,
+    clock: Clock
 ): ChainMetrics =
-  ChainMetrics(state: state, metrics: metrics, store: store, marketplace: marketplace)
+  ChainMetrics(state: state, metrics: metrics, store: store, marketplace: marketplace, clock: clock)

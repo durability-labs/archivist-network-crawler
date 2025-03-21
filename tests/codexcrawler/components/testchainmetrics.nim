@@ -11,6 +11,7 @@ import ../mocks/mockstate
 import ../mocks/mockmetrics
 import ../mocks/mockrequeststore
 import ../mocks/mockmarketplace
+import ../mocks/mockclock
 import ../helpers
 
 suite "ChainMetrics":
@@ -19,6 +20,7 @@ suite "ChainMetrics":
     metrics: MockMetrics
     store: MockRequestStore
     marketplace: MockMarketplaceService
+    clock: MockClock
     chain: ChainMetrics
 
   setup:
@@ -26,8 +28,9 @@ suite "ChainMetrics":
     metrics = createMockMetrics()
     store = createMockRequestStore()
     marketplace = createMockMarketplaceService()
+    clock = createMockClock()
 
-    chain = ChainMetrics.new(state, metrics, store, marketplace)
+    chain = ChainMetrics.new(state, metrics, store, marketplace, clock)
 
     (await chain.start()).tryGet()
 
@@ -43,10 +46,12 @@ suite "ChainMetrics":
       state.delays.len == 1
       state.delays[0] == 10.minutes
 
-  test "onStep should remove non-running requests from request store":
+  test "onStep should remove old non-running requests from request store":
     let rid = genRid()
-    store.iterateEntries.add(RequestEntry(id: rid))
+    let oneDay = (60 * 60 * 24).uint64
+    store.iterateEntries.add(RequestEntry(id: rid, lastSeen: 100.uint64))
 
+    clock.setNow = 100 + oneDay + 1
     marketplace.requestInfoReturns = none(RequestInfo)
 
     await onStep()
@@ -54,6 +59,20 @@ suite "ChainMetrics":
     check:
       marketplace.requestInfoRid == rid
       store.removeRid == rid
+
+  test "onStep should not remove recent non-running requests from request store":
+    let rid = genRid()
+    let now = 123456789.uint64
+    store.iterateEntries.add(RequestEntry(id: rid, lastSeen: now - 1))
+
+    clock.setNow = now
+    marketplace.requestInfoReturns = none(RequestInfo)
+
+    await onStep()
+
+    check:
+      marketplace.requestInfoRid == rid
+      not (store.removeRid == rid)
 
   test "onStep should count the number of active requests":
     let rid1 = genRid()
