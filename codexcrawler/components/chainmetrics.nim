@@ -8,28 +8,49 @@ import ../services/metrics
 import ../services/marketplace
 import ../components/requeststore
 import ../component
+import ../types
 
 logScope:
   topics = "chainmetrics"
 
-type ChainMetrics* = ref object of Component
-  state: State
-  metrics: Metrics
-  store: RequestStore
-  marketplace: MarketplaceService
+type
+  ChainMetrics* = ref object of Component
+    state: State
+    metrics: Metrics
+    store: RequestStore
+    marketplace: MarketplaceService
+
+  Update = ref object
+    numRequests: int
+    numSlots: int
+    totalSize: int64
+
+proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
+  var update = Update(numRequests: 0, numSlots: 0, totalSize: 0)
+
+  proc onRequest(entry: RequestEntry): Future[?!void] {.async: (raises: []).} =
+    let response = await c.marketplace.getRequestInfo(entry.id)
+    if info =? response:
+      inc update.numRequests
+      update.numSlots += info.slots.int
+      update.totalSize += (info.slots * info.slotSize).int64
+    else:
+      ?await c.store.remove(entry.id)
+    return success()
+
+  ?await c.store.iterateAll(onRequest)
+  return success(update)
+
+proc updateMetrics(c: ChainMetrics, update: Update) =
+  c.metrics.setRequests(update.numRequests)
+  c.metrics.setRequestSlots(update.numSlots)
+  c.metrics.setTotalSize(update.totalSize)
 
 proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
-  # iterate all requests in requestStore:
-    # get state of request on chain
-    # if failed/canceled/error:
-      # if last-seen is old (1month?3months?)
-        # delete entry
-    # else (request is running):
-      # count:
-        # total running
-        # total num slots
-        # total size of request
-  # iter finished: update metrics!
+  without update =? (await c.collectUpdate()), err:
+    return failure(err)
+
+  c.updateMetrics(update)
   return success()
 
 method start*(c: ChainMetrics): Future[?!void] {.async.} =
@@ -51,6 +72,6 @@ proc new*(
     state: State,
     metrics: Metrics,
     store: RequestStore,
-    marketplace: MarketplaceService
+    marketplace: MarketplaceService,
 ): ChainMetrics =
   ChainMetrics(state: state, metrics: metrics, store: store, marketplace: marketplace)

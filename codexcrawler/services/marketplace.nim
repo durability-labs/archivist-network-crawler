@@ -17,6 +17,7 @@ type
     state: State
     market: ?OnChainMarket
     clock: Clock
+
   OnNewRequest* = proc(id: Rid): Future[?!void] {.async: (raises: []), gcsafe.}
   RequestInfo* = ref object
     slots*: uint64
@@ -25,25 +26,28 @@ type
 proc notStarted() =
   raiseAssert("MarketplaceService was called before it was started.")
 
-proc fetchRequestInfo(market: OnChainMarket, rid: Rid): Future[?RequestInfo] {.async: (raises: []).} =
+proc fetchRequestInfo(
+    market: OnChainMarket, rid: Rid
+): Future[?RequestInfo] {.async: (raises: []).} =
   try:
     let request = await market.getRequest(rid)
     if r =? request:
-      return some(RequestInfo(
-        slots: r.ask.slots,
-        slotSize: r.ask.slotSize
-      ))
+      return some(RequestInfo(slots: r.ask.slots, slotSize: r.ask.slotSize))
   except CatchableError as exc:
     trace "Failed to get request info", err = exc.msg
   return none(RequestInfo)
 
-method subscribeToNewRequests*(m: MarketplaceService, onNewRequest: OnNewRequest): Future[?!void] {.async: (raises: []), base.} =
+method subscribeToNewRequests*(
+    m: MarketplaceService, onNewRequest: OnNewRequest
+): Future[?!void] {.async: (raises: []), base.} =
   proc resultWrapper(rid: Rid): Future[void] {.async.} =
     let response = await onNewRequest(rid)
     if error =? response.errorOption:
       raiseAssert("Error result in handling of onNewRequest callback: " & error.msg)
 
-  proc onRequest(id: RequestId, ask: StorageAsk, expiry: uint64) {.gcsafe, upraises: [].} =
+  proc onRequest(
+      id: RequestId, ask: StorageAsk, expiry: uint64
+  ) {.gcsafe, upraises: [].} =
     asyncSpawn resultWrapper(Rid(id))
 
   if market =? m.market:
@@ -54,8 +58,10 @@ method subscribeToNewRequests*(m: MarketplaceService, onNewRequest: OnNewRequest
   else:
     notStarted()
   return success()
-  
-method iteratePastNewRequestEvents*(m: MarketplaceService, onNewRequest: OnNewRequest): Future[?!void] {.async: (raises: []), base.} =
+
+method iteratePastNewRequestEvents*(
+    m: MarketplaceService, onNewRequest: OnNewRequest
+): Future[?!void] {.async: (raises: []), base.} =
   let
     oneDay = 60 * 60 * 24
     timespan = oneDay * 30
@@ -72,7 +78,9 @@ method iteratePastNewRequestEvents*(m: MarketplaceService, onNewRequest: OnNewRe
   else:
     notStarted()
 
-method getRequestInfo*(m: MarketplaceService, rid: Rid): Future[?RequestInfo] {.async: (raises: []), base.} =
+method getRequestInfo*(
+    m: MarketplaceService, rid: Rid
+): Future[?RequestInfo] {.async: (raises: []), base.} =
   # If the request id exists and is running, fetch the request object and return the info object.
   # otherwise, return none.
   if market =? m.market:

@@ -10,15 +10,11 @@ type MockRequestStore* = ref object of RequestStore
   removeRid*: Rid
   iterateEntries*: seq[RequestEntry]
 
-method update*(
-    s: MockRequestStore, rid: Rid
-): Future[?!void] {.async: (raises: []).} =
+method update*(s: MockRequestStore, rid: Rid): Future[?!void] {.async: (raises: []).} =
   s.updateRid = rid
   return success()
 
-method remove*(
-    s: MockRequestStore, rid: Rid
-): Future[?!void] {.async: (raises: []).} =
+method remove*(s: MockRequestStore, rid: Rid): Future[?!void] {.async: (raises: []).} =
   s.removeRid = rid
   return success()
 

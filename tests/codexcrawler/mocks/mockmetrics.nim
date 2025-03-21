@@ -6,7 +6,7 @@ type MockMetrics* = ref object of Metrics
   nok*: int
   requests*: int
   slots*: int
-  totalSize*: int
+  totalSize*: int64
 
 method setTodoNodes*(m: MockMetrics, value: int) =
   m.todo = value
@@ -23,7 +23,7 @@ method setRequests*(m: MockMetrics, value: int) =
 method setRequestSlots*(m: MockMetrics, value: int) =
   m.slots = value
 
-method setTotalSize*(m: MockMetrics, value: int) =
+method setTotalSize*(m: MockMetrics, value: int64) =
   m.totalSize = value
 
 proc createMockMetrics*(): MockMetrics =

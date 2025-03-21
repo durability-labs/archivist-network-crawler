@@ -13,20 +13,25 @@ type MockMarketplaceService* = ref object of MarketplaceService
   requestInfoReturns*: ?RequestInfo
   requestInfoRid*: Rid
 
-method subscribeToNewRequests*(m: MockMarketplaceService, onNewRequest: OnNewRequest): Future[?!void] {.async: (raises: []).} =
+method subscribeToNewRequests*(
+    m: MockMarketplaceService, onNewRequest: OnNewRequest
+): Future[?!void] {.async: (raises: []).} =
   m.subNewRequestsCallback = some(onNewRequest)
   return success()
-  
-method iteratePastNewRequestEvents*(m: MockMarketplaceService, onNewRequest: OnNewRequest): Future[?!void] {.async: (raises: []).} =
+
+method iteratePastNewRequestEvents*(
+    m: MockMarketplaceService, onNewRequest: OnNewRequest
+): Future[?!void] {.async: (raises: []).} =
   m.iterRequestsCallback = some(onNewRequest)
   return success()
 
-method getRequestInfo*(m: MockMarketplaceService, rid: Rid): Future[?RequestInfo] {.async: (raises: []).} =
+method getRequestInfo*(
+    m: MockMarketplaceService, rid: Rid
+): Future[?RequestInfo] {.async: (raises: []).} =
   m.requestInfoRid = rid
   return m.requestInfoReturns
 
 proc createMockMarketplaceService*(): MockMarketplaceService =
   MockMarketplaceService(
-    subNewRequestsCallback: none(OnNewRequest),
-    iterRequestsCallback: none(OnNewRequest)
+    subNewRequestsCallback: none(OnNewRequest), iterRequestsCallback: none(OnNewRequest)
   )

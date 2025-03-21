@@ -43,18 +43,6 @@ suite "ChainMetrics":
       state.delays.len == 1
       state.delays[0] == 10.minutes
 
-  # iterate all requests in requestStore:
-    # get state of request on chain
-    # if failed/canceled/error:
-      # if last-seen is old (1month?3months?)
-        # delete entry
-    # else (request is running):
-      # count:
-        # total running
-        # total num slots
-        # total size of request
-  # iter finished: update metrics!
-
   test "onStep should remove non-running requests from request store":
     let rid = genRid()
     store.iterateEntries.add(RequestEntry(id: rid))
@@ -66,7 +54,7 @@ suite "ChainMetrics":
     check:
       marketplace.requestInfoRid == rid
       store.removeRid == rid
-    
+
   test "onStep should count the number of active requests":
     let rid1 = genRid()
     let rid2 = genRid()
@@ -84,9 +72,7 @@ suite "ChainMetrics":
     let rid = genRid()
     store.iterateEntries.add(RequestEntry(id: rid))
 
-    let info = RequestInfo(
-      slots: 123
-    )
+    let info = RequestInfo(slots: 123)
     marketplace.requestInfoReturns = some(info)
 
     await onStep()
@@ -98,10 +84,7 @@ suite "ChainMetrics":
     let rid = genRid()
     store.iterateEntries.add(RequestEntry(id: rid))
 
-    let info = RequestInfo(
-      slots: 12,
-      slotSize: 23
-    )
+    let info = RequestInfo(slots: 12, slotSize: 23)
     marketplace.requestInfoReturns = some(info)
 
     await onStep()

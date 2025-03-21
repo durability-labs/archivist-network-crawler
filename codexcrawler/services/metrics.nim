@@ -8,7 +8,9 @@ declareGauge(nokNodesGauge, "DHT nodes failed to contact")
 
 declareGauge(requestsGauge, "Marketplace active storage requests")
 declareGauge(requestSlotsGauge, "Marketplace active storage request slots")
-declareGauge(totalStorageSizeGauge, "Marketplace total bytes stored in active storage requests")
+declareGauge(
+  totalStorageSizeGauge, "Marketplace total bytes stored in active storage requests"
+)
 
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
@@ -48,7 +50,7 @@ method setRequests*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
 method setRequestSlots*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.onRequestSlots(value.int64)
 
-method setTotalSize*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
+method setTotalSize*(m: Metrics, value: int64) {.base, gcsafe, raises: [].} =
   m.onTotalSize(value.int64)
 
 proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
@@ -74,5 +76,11 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
   proc onTotalSize(value: int64) =
     totalStorageSizeGauge.set(value)
 
-  return
-    Metrics(todoNodes: onTodo, okNodes: onOk, nokNodes: onNok, onRequests: onRequests, onRequestSlots: onRequestSlots, onTotalSize: onTotalSize)
+  return Metrics(
+    todoNodes: onTodo,
+    okNodes: onOk,
+    nokNodes: onNok,
+    onRequests: onRequests,
+    onRequestSlots: onRequestSlots,
+    onTotalSize: onTotalSize,
+  )

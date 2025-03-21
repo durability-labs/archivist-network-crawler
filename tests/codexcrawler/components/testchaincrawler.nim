@@ -25,7 +25,7 @@ suite "ChainCrawler":
     state = createMockState()
     store = createMockRequestStore()
     marketplace = createMockMarketplaceService()
-    
+
     crawler = ChainCrawler.new(state, store, marketplace)
 
     (await crawler.start()).tryGet()

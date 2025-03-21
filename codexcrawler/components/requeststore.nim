@@ -10,7 +10,6 @@ import ../types
 import ../component
 import ../state
 import ../utils/datastoreutils
-import ../utils/asyncdataevent
 import ../services/clock
 
 const requeststoreName = "requeststore"
