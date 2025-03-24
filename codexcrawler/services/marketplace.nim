@@ -33,7 +33,8 @@ proc fetchRequestInfo(
   try:
     let request = await market.getRequest(rid)
     if r =? request:
-      return some(RequestInfo(pending: false, slots: r.ask.slots, slotSize: r.ask.slotSize))
+      return
+        some(RequestInfo(pending: false, slots: r.ask.slots, slotSize: r.ask.slotSize))
   except CatchableError as exc:
     trace "Failed to get request info", err = exc.msg
   return none(RequestInfo)

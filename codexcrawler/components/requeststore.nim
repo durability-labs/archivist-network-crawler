@@ -55,9 +55,7 @@ proc decode*(T: type RequestEntry, bytes: seq[byte]): ?!T =
     return success(RequestEntry(isValid: false))
   return RequestEntry.fromBytes(bytes)
 
-method add*(
-    s: RequestStore, rid: Rid
-): Future[?!void] {.async: (raises: []), base.} =
+method add*(s: RequestStore, rid: Rid): Future[?!void] {.async: (raises: []), base.} =
   without key =? Key.init(requeststoreName / $rid), err:
     error "failed to format key", err = err.msg
     return failure(err)
@@ -110,9 +108,7 @@ method iterateAll*(
     return failure(exc.msg)
   return success()
 
-proc new*(
-    T: type RequestStore, state: State, store: TypedDatastore
-): RequestStore =
+proc new*(T: type RequestStore, state: State, store: TypedDatastore): RequestStore =
   RequestStore(state: state, store: store)
 
 proc createRequestStore*(state: State): ?!RequestStore =

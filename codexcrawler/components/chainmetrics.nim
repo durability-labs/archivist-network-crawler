@@ -78,6 +78,4 @@ proc new*(
     store: RequestStore,
     marketplace: MarketplaceService,
 ): ChainMetrics =
-  ChainMetrics(
-    state: state, metrics: metrics, store: store, marketplace: marketplace
-  )
+  ChainMetrics(state: state, metrics: metrics, store: store, marketplace: marketplace)
