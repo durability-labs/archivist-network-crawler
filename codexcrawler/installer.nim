@@ -28,14 +28,14 @@ proc createComponents*(state: State): Future[?!seq[Component]] {.async.} =
   without nodeStore =? createNodeStore(state, clock), err:
     return failure(err)
 
-  without requestStore =? createRequestStore(state, clock), err:
+  without requestStore =? createRequestStore(state), err:
     return failure(err)
 
   let
     metrics = createMetrics(state.config.metricsAddress, state.config.metricsPort)
     todoList = createTodoList(state, metrics)
     marketplace = createMarketplace(state, clock)
-    chainMetrics = ChainMetrics.new(state, metrics, requestStore, marketplace, clock)
+    chainMetrics = ChainMetrics.new(state, metrics, requestStore, marketplace)
 
   without dhtMetrics =? createDhtMetrics(state, metrics), err:
     return failure(err)

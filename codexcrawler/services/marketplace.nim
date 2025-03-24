@@ -20,6 +20,7 @@ type
 
   OnNewRequest* = proc(id: Rid): Future[?!void] {.async: (raises: []), gcsafe.}
   RequestInfo* = ref object
+    pending*: bool
     slots*: uint64
     slotSize*: uint64
 
@@ -32,7 +33,7 @@ proc fetchRequestInfo(
   try:
     let request = await market.getRequest(rid)
     if r =? request:
-      return some(RequestInfo(slots: r.ask.slots, slotSize: r.ask.slotSize))
+      return some(RequestInfo(pending: false, slots: r.ask.slots, slotSize: r.ask.slotSize))
   except CatchableError as exc:
     trace "Failed to get request info", err = exc.msg
   return none(RequestInfo)
@@ -88,6 +89,8 @@ method getRequestInfo*(
     try:
       let state = await market.requestState(rid)
       if s =? state:
+        if s == RequestState.New:
+          return some(RequestInfo(pending: true))
         if s == RequestState.Started:
           return await market.fetchRequestInfo(rid)
     except CatchableError as exc:

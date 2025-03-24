@@ -17,7 +17,7 @@ type ChainCrawler* = ref object of Component
   marketplace: MarketplaceService
 
 proc onNewRequest(c: ChainCrawler, rid: Rid): Future[?!void] {.async: (raises: []).} =
-  return await c.store.update(rid)
+  return await c.store.add(rid)
 
 method start*(c: ChainCrawler): Future[?!void] {.async.} =
   info "starting..."

@@ -1,4 +1,3 @@
-import std/sequtils
 import pkg/questionable/results
 import pkg/chronos
 
@@ -6,12 +5,12 @@ import ../../../codexcrawler/components/requeststore
 import ../../../codexcrawler/types
 
 type MockRequestStore* = ref object of RequestStore
-  updateRid*: Rid
+  addRid*: Rid
   removeRid*: Rid
   iterateEntries*: seq[RequestEntry]
 
-method update*(s: MockRequestStore, rid: Rid): Future[?!void] {.async: (raises: []).} =
-  s.updateRid = rid
+method add*(s: MockRequestStore, rid: Rid): Future[?!void] {.async: (raises: []).} =
+  s.addRid = rid
   return success()
 
 method remove*(s: MockRequestStore, rid: Rid): Future[?!void] {.async: (raises: []).} =

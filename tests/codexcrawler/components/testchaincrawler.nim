@@ -41,7 +41,7 @@ suite "ChainCrawler":
     (await (marketplace.subNewRequestsCallback.get())(rid)).tryGet()
 
     check:
-      store.updateRid == rid
+      store.addRid == rid
 
   test "start should iterate past requests and add then to store":
     check:
@@ -51,4 +51,4 @@ suite "ChainCrawler":
     (await marketplace.iterRequestsCallback.get()(rid)).tryGet()
 
     check:
-      store.updateRid == rid
+      store.addRid == rid

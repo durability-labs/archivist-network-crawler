@@ -7,6 +7,7 @@ declareGauge(okNodesGauge, "DHT nodes successfully contacted")
 declareGauge(nokNodesGauge, "DHT nodes failed to contact")
 
 declareGauge(requestsGauge, "Marketplace active storage requests")
+declareGauge(pendingGauge, "Marketplace pending storage requests")
 declareGauge(requestSlotsGauge, "Marketplace active storage request slots")
 declareGauge(
   totalStorageSizeGauge, "Marketplace total bytes stored in active storage requests"
@@ -21,6 +22,7 @@ type
     nokNodes: OnUpdateMetric
 
     onRequests: OnUpdateMetric
+    onPending: OnUpdateMetric
     onRequestSlots: OnUpdateMetric
     onTotalSize: OnUpdateMetric
 
@@ -47,6 +49,9 @@ method setNokNodes*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
 method setRequests*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.onRequests(value.int64)
 
+method setPendingRequests*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
+  m.onPending(value.int64)
+
 method setRequestSlots*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
   m.onRequestSlots(value.int64)
 
@@ -70,6 +75,9 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
   proc onRequests(value: int64) =
     requestsGauge.set(value)
 
+  proc onPending(value: int64) =
+    pendingGauge.set(value)
+
   proc onRequestSlots(value: int64) =
     requestSlotsGauge.set(value)
 
@@ -81,6 +89,7 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
     okNodes: onOk,
     nokNodes: onNok,
     onRequests: onRequests,
+    onPending: onPending,
     onRequestSlots: onRequestSlots,
     onTotalSize: onTotalSize,
   )

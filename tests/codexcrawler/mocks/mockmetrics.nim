@@ -5,6 +5,7 @@ type MockMetrics* = ref object of Metrics
   ok*: int
   nok*: int
   requests*: int
+  pending*: int
   slots*: int
   totalSize*: int64
 
@@ -19,6 +20,9 @@ method setNokNodes*(m: MockMetrics, value: int) =
 
 method setRequests*(m: MockMetrics, value: int) =
   m.requests = value
+
+method setPendingRequests*(m: MockMetrics, value: int) =
+  m.pending = value
 
 method setRequestSlots*(m: MockMetrics, value: int) =
   m.slots = value

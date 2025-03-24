@@ -9,7 +9,6 @@ import ../../../codexcrawler/utils/datastoreutils
 import ../../../codexcrawler/types
 import ../../../codexcrawler/state
 import ../mocks/mockstate
-import ../mocks/mockclock
 import ../helpers
 
 suite "Requeststore":
@@ -20,15 +19,13 @@ suite "Requeststore":
   var
     ds: TypedDatastore
     state: MockState
-    clock: MockClock
     store: RequestStore
 
   setup:
     ds = createTypedDatastore(dsPath).tryGet()
     state = createMockState()
-    clock = createMockClock()
 
-    store = RequestStore.new(state, ds, clock)
+    store = RequestStore.new(state, ds)
 
   teardown:
     (await ds.close()).tryGet()
@@ -36,7 +33,7 @@ suite "Requeststore":
     removeDir(dsPath)
 
   test "requestEntry encoding":
-    let entry = RequestEntry(id: genRid(), lastSeen: 123.uint64)
+    let entry = RequestEntry(id: genRid())
 
     let
       bytes = entry.encode()
@@ -44,11 +41,10 @@ suite "Requeststore":
 
     check:
       entry.id == decoded.id
-      entry.lastSeen == decoded.lastSeen
 
-  test "update stores a new requestId with current time":
+  test "add stores a new requestId":
     let rid = genRid()
-    (await store.update(rid)).tryGet()
+    (await store.add(rid)).tryGet()
 
     let
       key = Key.init(requeststoreName / $rid).tryGet()
@@ -56,26 +52,10 @@ suite "Requeststore":
 
     check:
       stored.id == rid
-      stored.lastSeen == clock.setNow
-
-  test "update updates the current time of an existing requestId with current time":
-    let rid = genRid()
-    (await store.update(rid)).tryGet()
-
-    clock.setNow = 1234
-    (await store.update(rid)).tryGet()
-
-    let
-      key = Key.init(requeststoreName / $rid).tryGet()
-      stored = (await get[RequestEntry](ds, key)).tryGet()
-
-    check:
-      stored.id == rid
-      stored.lastSeen == clock.setNow
 
   test "remove will remove an entry":
     let rid = genRid()
-    (await store.update(rid)).tryGet()
+    (await store.add(rid)).tryGet()
     (await store.remove(rid)).tryGet()
 
     let
@@ -91,9 +71,9 @@ suite "Requeststore":
       rid2 = genRid()
       rid3 = genRid()
 
-    (await store.update(rid1)).tryGet()
-    (await store.update(rid2)).tryGet()
-    (await store.update(rid3)).tryGet()
+    (await store.add(rid1)).tryGet()
+    (await store.add(rid2)).tryGet()
+    (await store.add(rid3)).tryGet()
 
     var entries = newSeq[RequestEntry]()
     proc onEntry(entry: RequestEntry): Future[?!void] {.async: (raises: []), gcsafe.} =
@@ -117,7 +97,3 @@ suite "Requeststore":
       check:
         id in ids
 
-    check:
-      entries[0].lastSeen == clock.setNow
-      entries[1].lastSeen == clock.setNow
-      entries[2].lastSeen == clock.setNow

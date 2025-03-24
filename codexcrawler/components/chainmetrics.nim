@@ -6,7 +6,6 @@ import pkg/questionable/results
 import ../state
 import ../services/metrics
 import ../services/marketplace
-import ../services/clock
 import ../components/requeststore
 import ../component
 import ../types
@@ -20,29 +19,29 @@ type
     metrics: Metrics
     store: RequestStore
     marketplace: MarketplaceService
-    clock: Clock
 
   Update = ref object
     numRequests: int
+    numPending: int
     numSlots: int
     totalSize: int64
 
-proc isOld(c: ChainMetrics, entry: RequestEntry): bool =
-  let oneDay = 60 * 60 * 24
-  return entry.lastSeen < (c.clock.now - oneDay.uint64)
-
 proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
-  var update = Update(numRequests: 0, numSlots: 0, totalSize: 0)
+  var update = Update(numRequests: 0, numPending: 0, numSlots: 0, totalSize: 0)
 
   proc onRequest(entry: RequestEntry): Future[?!void] {.async: (raises: []).} =
     let response = await c.marketplace.getRequestInfo(entry.id)
     if info =? response:
-      inc update.numRequests
-      update.numSlots += info.slots.int
-      update.totalSize += (info.slots * info.slotSize).int64
+      if info.pending:
+        trace "request is pending", id = $entry.id
+        inc update.numPending
+      else:
+        trace "request is running", id = $entry.id
+        inc update.numRequests
+        update.numSlots += info.slots.int
+        update.totalSize += (info.slots * info.slotSize).int64
     else:
-      if c.isOld(entry):
-        ?await c.store.remove(entry.id)
+      ?await c.store.remove(entry.id)
     return success()
 
   ?await c.store.iterateAll(onRequest)
@@ -50,6 +49,7 @@ proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
 
 proc updateMetrics(c: ChainMetrics, update: Update) =
   c.metrics.setRequests(update.numRequests)
+  c.metrics.setPendingRequests(update.numPending)
   c.metrics.setRequestSlots(update.numSlots)
   c.metrics.setTotalSize(update.totalSize)
 
@@ -77,8 +77,7 @@ proc new*(
     metrics: Metrics,
     store: RequestStore,
     marketplace: MarketplaceService,
-    clock: Clock,
 ): ChainMetrics =
   ChainMetrics(
-    state: state, metrics: metrics, store: store, marketplace: marketplace, clock: clock
+    state: state, metrics: metrics, store: store, marketplace: marketplace
   )

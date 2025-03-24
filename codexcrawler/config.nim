@@ -21,7 +21,7 @@ Options:
   --discoveryPort=<p>               Port used for DHT [default: 8090]
   --bootNodes=<n>                   Semi-colon-separated list of Codex bootstrap SPRs [default: testnet_sprs]
 
-  --dhtEnable=<e>                   Set to "1" to enable DHT crawler [default: 0]
+  --dhtEnable=<e>                   Set to "1" to enable DHT crawler [default: 1]
   --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 1000]
   --revisitDelay=<m>                Delay in minutes after which a node can be revisited [default: 60]
   --checkDelay=<m>                  Delay with which the 'revisitDelay' is checked for all known nodes [default: 10]
