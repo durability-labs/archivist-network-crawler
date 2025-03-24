@@ -128,5 +128,5 @@ proc parseConfig*(): Config =
     marketplaceEnable: getEnable(get("--marketplaceEnable")),
     ethProvider: get("--ethProvider"),
     marketplaceAddress: get("--marketplaceAddress"),
-    requestCheckDelay: parseInt(get("--requestCheckDelay"))
+    requestCheckDelay: parseInt(get("--requestCheckDelay")),
   )
