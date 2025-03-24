@@ -67,7 +67,7 @@ method start*(c: ChainMetrics): Future[?!void] {.async.} =
     return await c.step()
 
   if c.state.config.marketplaceEnable:
-    await c.state.whileRunning(onStep, 10.minutes)
+    await c.state.whileRunning(onStep, c.state.config.requestCheckDelay.minutes)
 
   return success()
 

@@ -10,7 +10,7 @@ let doc =
 Codex Network Crawler. Generates network metrics.
 
 Usage:
-  codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--dhtEnable=<e>] [--stepDelay=<ms>] [--revisitDelay=<m>] [--checkDelay=<m>]  [--expiryDelay=<m>] [--marketplaceEnable=<e>] [--ethProvider=<a>] [--marketplaceAddress=<a>]
+  codexcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--dhtEnable=<e>] [--stepDelay=<ms>] [--revisitDelay=<m>] [--checkDelay=<m>]  [--expiryDelay=<m>] [--marketplaceEnable=<e>] [--ethProvider=<a>] [--marketplaceAddress=<a>] [--requestCheckDelay=<m>]
 
 Options:
   --logLevel=<l>                    Sets log level [default: INFO]
@@ -20,14 +20,17 @@ Options:
   --dataDir=<dir>                   Directory for storing data [default: crawler_data]
   --discoveryPort=<p>               Port used for DHT [default: 8090]
   --bootNodes=<n>                   Semi-colon-separated list of Codex bootstrap SPRs [default: testnet_sprs]
+
   --dhtEnable=<e>                   Set to "1" to enable DHT crawler [default: 0]
   --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 1000]
   --revisitDelay=<m>                Delay in minutes after which a node can be revisited [default: 60]
   --checkDelay=<m>                  Delay with which the 'revisitDelay' is checked for all known nodes [default: 10]
   --expiryDelay=<m>                 Delay in minutes after which unresponsive nodes are discarded [default: 1440] (24h)
+
   --marketplaceEnable=<e>           Set to "1" to enable marketplace metrics [default: 1]
   --ethProvider=<a>                 Address including http(s) or ws of the eth provider
   --marketplaceAddress=<a>          Eth address of Codex contracts deployment
+  --requestCheckDelay=<m>           Delay in minutes after which storage contract status is (re)checked [default: 10]
 """
 
 import strutils
@@ -51,6 +54,7 @@ type Config* = ref object
   marketplaceEnable*: bool
   ethProvider*: string
   marketplaceAddress*: string
+  requestCheckDelay*: int
 
 proc `$`*(config: Config): string =
   "Crawler:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
@@ -61,7 +65,7 @@ proc `$`*(config: Config): string =
     " expiryDelayMins=" & $config.expiryDelayMins & " checkDelayMins=" &
     $config.checkDelayMins & " marketplaceEnable=" & $config.marketplaceEnable &
     " ethProvider=" & config.ethProvider & " marketplaceAddress=" &
-    config.marketplaceAddress
+    config.marketplaceAddress & " requestCheckDelay=" & $config.requestCheckDelay
 
 proc getDefaultTestnetBootNodes(): seq[string] =
   @[
@@ -124,4 +128,5 @@ proc parseConfig*(): Config =
     marketplaceEnable: getEnable(get("--marketplaceEnable")),
     ethProvider: get("--ethProvider"),
     marketplaceAddress: get("--marketplaceAddress"),
+    requestCheckDelay: parseInt(get("--requestCheckDelay"))
   )

@@ -22,7 +22,11 @@ method whileRunning*(s: MockState, step: OnStep, delay: Duration) {.async.} =
 proc createMockState*(): MockState =
   MockState(
     status: ApplicationStatus.Running,
-    config: Config(dhtEnable: true, marketplaceEnable: true),
+    config: Config(
+      dhtEnable: true,
+      marketplaceEnable: true,
+      requestCheckDelay: 4
+    ),
     events: Events(
       nodesFound: newAsyncDataEvent[seq[Nid]](),
       newNodesDiscovered: newAsyncDataEvent[seq[Nid]](),

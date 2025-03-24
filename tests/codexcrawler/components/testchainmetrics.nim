@@ -39,10 +39,10 @@ suite "ChainMetrics":
   proc onStep() {.async.} =
     (await state.steppers[0]()).tryGet()
 
-  test "start should start stepper for 10 minutes":
+  test "start should start stepper for config.requestCheckDelay minutes":
     check:
       state.delays.len == 1
-      state.delays[0] == 10.minutes
+      state.delays[0] == state.config.requestCheckDelay.minutes
 
   test "onStep should remove old non-running requests from request store":
     let rid = genRid()

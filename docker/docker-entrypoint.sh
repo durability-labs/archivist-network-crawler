@@ -19,9 +19,10 @@ EXPIRYDELAY=${CRAWLER_EXPIRYDELAY:-1440}
 MARKETPLACEENABLE=${CRAWLER_MARKETPLACEENABLE:-1}
 ETHPROVIDER=${CRAWLER_ETHPROVIDER:-NULL}
 MARKETPLACEADDRESS=${CRAWLER_MARKETPLACEADDRESS:-NULL}
+REQUESTCHECKDELAY=${CRAWLER_REQUESTCHECKDELAY:-10}
 
 # Update CLI arguments
-set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --bootNodes="${BOOTNODES}" --dhtEnable="${DHTENABLE}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}" --marketplaceEnable="${MARKETPLACEENABLE}" --ethProvider="${ETHPROVIDER}" --marketplaceAddress="${MARKETPLACEADDRESS}"
+set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --bootNodes="${BOOTNODES}" --dhtEnable="${DHTENABLE}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}" --marketplaceEnable="${MARKETPLACEENABLE}" --ethProvider="${ETHPROVIDER}" --marketplaceAddress="${MARKETPLACEADDRESS}" --requestCheckDelay="${REQUESTCHECKDELAY}"
 
 # Run
 echo "Run Codex Crawler"
