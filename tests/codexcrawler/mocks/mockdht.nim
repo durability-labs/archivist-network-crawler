@@ -18,11 +18,5 @@ method getNeighbors*(
   d.getNeighborsArg = some(target)
   return d.getNeighborsReturn
 
-method start*(d: MockDht): Future[?!void] {.async.} =
-  return success()
-
-method stop*(d: MockDht): Future[?!void] {.async.} =
-  return success()
-
 proc createMockDht*(): MockDht =
   MockDht()

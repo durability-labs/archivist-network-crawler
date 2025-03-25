@@ -203,7 +203,7 @@ method deleteEntries*(
   return success()
 
 method start*(s: NodeStore): Future[?!void] {.async.} =
-  info "Starting..."
+  info "starting..."
 
   proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
     return await s.processFoundNodes(nids)

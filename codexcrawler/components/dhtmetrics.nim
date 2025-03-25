@@ -45,11 +45,7 @@ proc handleDeleteEvent(d: DhtMetrics, nids: seq[Nid]): Future[?!void] {.async.} 
   d.updateMetrics()
   return success()
 
-method start*(d: DhtMetrics): Future[?!void] {.async.} =
-  info "Starting..."
-  ?await d.ok.load()
-  ?await d.nok.load()
-
+method awake*(d: DhtMetrics): Future[?!void] {.async.} =
   proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
     await d.handleCheckEvent(event)
 
@@ -58,7 +54,12 @@ method start*(d: DhtMetrics): Future[?!void] {.async.} =
 
   d.subCheck = d.state.events.dhtNodeCheck.subscribe(onCheck)
   d.subDel = d.state.events.nodesDeleted.subscribe(onDelete)
+  return success()
 
+method start*(d: DhtMetrics): Future[?!void] {.async.} =
+  info "starting..."
+  ?await d.ok.load()
+  ?await d.nok.load()
   return success()
 
 method stop*(d: DhtMetrics): Future[?!void] {.async.} =

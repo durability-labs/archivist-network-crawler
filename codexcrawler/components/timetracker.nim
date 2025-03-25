@@ -57,7 +57,7 @@ proc raiseRoutingTableNodes(t: TimeTracker): Future[?!void] {.async: (raises: []
   return success()
 
 method start*(t: TimeTracker): Future[?!void] {.async.} =
-  info "Starting..."
+  info "starting..."
 
   proc onCheckRevisitAndExpiry(): Future[?!void] {.async: (raises: []), gcsafe.} =
     await t.checkRevisitsAndExpiry()
@@ -69,9 +69,6 @@ method start*(t: TimeTracker): Future[?!void] {.async.} =
     onCheckRevisitAndExpiry, t.state.config.checkDelayMins.minutes
   )
   await t.state.whileRunning(onRoutingTable, 30.minutes)
-  return success()
-
-method stop*(t: TimeTracker): Future[?!void] {.async.} =
   return success()
 
 proc new*(

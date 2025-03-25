@@ -3,7 +3,7 @@ import pkg/questionable
 import pkg/questionable/results
 import pkg/asynctest/chronos/unittest
 
-import ../../../codexcrawler/components/crawler
+import ../../../codexcrawler/components/dhtcrawler
 import ../../../codexcrawler/services/dht
 import ../../../codexcrawler/utils/asyncdataevent
 import ../../../codexcrawler/types
@@ -13,14 +13,14 @@ import ../mocks/mockdht
 import ../mocks/mocktodolist
 import ../helpers
 
-suite "Crawler":
+suite "DhtCrawler":
   var
     nid1: Nid
     nid2: Nid
     state: MockState
     todo: MockTodoList
     dht: MockDht
-    crawler: Crawler
+    crawler: DhtCrawler
 
   setup:
     nid1 = genNid()
@@ -29,12 +29,10 @@ suite "Crawler":
     todo = createMockTodoList()
     dht = createMockDht()
 
-    crawler = Crawler.new(state, dht, todo)
-
+    crawler = DhtCrawler.new(state, dht, todo)
     (await crawler.start()).tryGet()
 
   teardown:
-    (await crawler.stop()).tryGet()
     state.checkAllUnsubscribed()
 
   proc onStep() {.async.} =
@@ -54,6 +52,19 @@ suite "Crawler":
 
     check:
       !(dht.getNeighborsArg) == nid1
+
+  test "onStep is not activated when config.dhtEnable is false":
+    # Recreate crawler, reset mockstate:
+    state.steppers = @[]
+    # disable DHT:
+    state.config.dhtEnable = false
+    (await crawler.start()).tryGet()
+
+    todo.popReturn = success(nid1)
+    dht.getNeighborsReturn = success(responsive(nid1))
+
+    check:
+      state.steppers.len == 0
 
   test "nodes returned by getNeighbors are raised as nodesFound":
     var nodesFound = newSeq[Nid]()

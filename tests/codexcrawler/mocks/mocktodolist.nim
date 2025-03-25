@@ -10,11 +10,5 @@ type MockTodoList* = ref object of TodoList
 method pop*(t: MockTodoList): Future[?!Nid] {.async: (raises: []).} =
   return t.popReturn
 
-method start*(t: MockTodoList): Future[?!void] {.async.} =
-  return success()
-
-method stop*(t: MockTodoList): Future[?!void] {.async.} =
-  return success()
-
 proc createMockTodoList*(): MockTodoList =
   MockTodoList()

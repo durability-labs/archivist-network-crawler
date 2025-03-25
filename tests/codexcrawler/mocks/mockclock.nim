@@ -7,4 +7,4 @@ method now*(clock: MockClock): uint64 {.raises: [].} =
   clock.setNow
 
 proc createMockClock*(): MockClock =
-  MockClock()
+  MockClock(setNow: 12)

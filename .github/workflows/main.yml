@@ -25,9 +25,22 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: true
+
     - uses: iffy/install-nim@v4
       with:
         version: ${{ matrix.nim }}
+
+    - name: Update nimble
+      run: |
+        nimble install nimble
+        nimble --version
+
+    - name: Use updated nimble version on Windows
+      if: contains(matrix.os, 'windows')
+      run: |
+        del $HOME\.nimble\bin\nimble.exe
+        nimble --version
+
     - name: Build
       run: nimble build -y
     - name: Test

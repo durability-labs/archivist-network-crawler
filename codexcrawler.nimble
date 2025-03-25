@@ -25,6 +25,7 @@ requires "questionable >= 0.10.15 & < 0.11.0"
 requires "https://github.com/codex-storage/nim-codex-dht#f6eef1ac95c70053b2518f1e3909c909ed8701a6"
 requires "docopt >= 0.7.1 & < 1.0.0"
 requires "nph >= 0.6.1 & < 1.0.0"
+requires "ethers >= 1.0.0 & < 2.0.0"
 
 task format, "Formatting...":
   exec "nph ./"

@@ -28,7 +28,7 @@ suite "DhtMetrics":
     metrics = createMockMetrics()
 
     dhtmetrics = DhtMetrics.new(state, okList, nokList, metrics)
-
+    (await dhtmetrics.awake()).tryGet()
     (await dhtmetrics.start()).tryGet()
 
   teardown:

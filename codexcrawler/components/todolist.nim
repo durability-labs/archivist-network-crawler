@@ -32,13 +32,13 @@ proc addNodes(t: TodoList, nids: seq[Nid]) =
   t.metrics.setTodoNodes(t.nids.len)
 
   if s =? t.emptySignal:
-    trace "Nodes added, resuming...", nodes = nids.len
+    trace "nodes added, resuming...", nodes = nids.len
     s.complete()
     t.emptySignal = Future[void].none
 
 method pop*(t: TodoList): Future[?!Nid] {.async: (raises: []), base.} =
   if t.nids.len < 1:
-    trace "List is empty. Waiting for new items..."
+    trace "list is empty. Waiting for new items..."
     let signal = newFuture[void]("list.emptySignal")
     t.emptySignal = some(signal)
     try:
@@ -54,8 +54,8 @@ method pop*(t: TodoList): Future[?!Nid] {.async: (raises: []), base.} =
 
   return success(item)
 
-method start*(t: TodoList): Future[?!void] {.async.} =
-  info "Starting TodoList..."
+method awake*(t: TodoList): Future[?!void] {.async.} =
+  info "initializing..."
 
   proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async.} =
     t.addNodes(nids)
