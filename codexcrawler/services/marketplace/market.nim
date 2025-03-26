@@ -138,16 +138,12 @@ proc periodicity*(
     let period = config.proofs.period
     return Periodicity(seconds: period)
 
-proc proofTimeout*(
-    market: OnChainMarket
-): Future[uint64] {.async: (raises: [CancelledError, MarketError]).} =
+proc proofTimeout*(market: OnChainMarket): Future[uint64] {.async.} =
   convertEthersError:
     let config = await market.config()
     return config.proofs.timeout
 
-proc repairRewardPercentage*(
-    market: OnChainMarket
-): Future[uint8] {.async: (raises: [CancelledError, MarketError]).} =
+proc repairRewardPercentage*(market: OnChainMarket): Future[uint8] {.async.} =
   convertEthersError:
     let config = await market.config()
     return config.collateral.repairRewardPercentage
@@ -157,9 +153,7 @@ proc requestDurationLimit*(market: OnChainMarket): Future[uint64] {.async.} =
     let config = await market.config()
     return config.requestDurationLimit
 
-proc proofDowntime*(
-    market: OnChainMarket
-): Future[uint8] {.async: (raises: [CancelledError, MarketError]).} =
+proc proofDowntime*(market: OnChainMarket): Future[uint8] {.async.} =
   convertEthersError:
     let config = await market.config()
     return config.proofs.downtime
@@ -188,25 +182,15 @@ proc requestStorage(market: OnChainMarket, request: StorageRequest) {.async.} =
 
 proc getRequest*(
     market: OnChainMarket, id: RequestId
-): Future[?StorageRequest] {.async: (raises: [CancelledError]).} =
-  try:
-    let key = $id
+): Future[?StorageRequest] {.async.} =
+  let key = $id
 
-    # if key in market.requestCache:
-    #   return some market.requestCache[key]
-
-    let request = await market.contract.getRequest(id)
-    # market.requestCache[key] = request
-    return some request
-  except Marketplace_UnknownRequest, KeyError:
-    warn "Cannot retrieve the request", error = getCurrentExceptionMsg()
-    return none StorageRequest
-  except EthersError, AsyncLockError:
-    error "Cannot retrieve the request", error = getCurrentExceptionMsg()
-    return none StorageRequest
-  except CatchableError as err:
-    error "Unknown error", error = err.msg
-    return none StorageRequest
+  convertEthersError:
+    try:
+      let request = await market.contract.getRequest(id)
+      return some request
+    except Marketplace_UnknownRequest:
+      return none StorageRequest
 
 proc requestState*(
     market: OnChainMarket, requestId: RequestId
@@ -218,27 +202,18 @@ proc requestState*(
     except Marketplace_UnknownRequest:
       return none RequestState
 
-proc slotState*(
-    market: OnChainMarket, slotId: SlotId
-): Future[SlotState] {.async: (raises: [CancelledError, MarketError]).} =
+proc slotState*(market: OnChainMarket, slotId: SlotId): Future[SlotState] {.async.} =
   convertEthersError:
-    try:
-      let overrides = CallOverrides(blockTag: some BlockTag.pending)
-      return await market.contract.slotState(slotId, overrides)
-    except AsyncLockError as err:
-      raiseMarketError(
-        "Failed to fetch the slot state from the Marketplace contract: " & err.msg
-      )
-    except CatchableError as err:
-      raiseMarketError("Unknown error: " & err.msg)
+    let overrides = CallOverrides(blockTag: some BlockTag.pending)
+    return await market.contract.slotState(slotId, overrides)
 
-proc getRequestEnd*(market: OnChainMarket, id: RequestId): Future[int64] {.async.} =
+proc getRequestEnd*(market: OnChainMarket, id: RequestId): Future[uint64] {.async.} =
   convertEthersError:
-    return await market.contract.requestEnd(id)
+    return (await market.contract.requestEnd(id)).uint64
 
-proc requestExpiresAt*(market: OnChainMarket, id: RequestId): Future[int64] {.async.} =
+proc requestExpiresAt*(market: OnChainMarket, id: RequestId): Future[uint64] {.async.} =
   convertEthersError:
-    return await market.contract.requestExpiry(id)
+    return (await market.contract.requestExpiry(id)).uint64
 
 proc getHost(
     market: OnChainMarket, requestId: RequestId, slotIndex: uint64
@@ -282,7 +257,7 @@ proc fillSlot(
     trace "fillSlot transaction completed"
 
 proc freeSlot*(market: OnChainMarket, slotId: SlotId) {.async.} =
-  raiseAssert("Not available: freeSlot")
+  raiseAssert("Not supported")
 
 proc withdrawFunds(market: OnChainMarket, requestId: RequestId) {.async.} =
   convertEthersError:
@@ -558,48 +533,13 @@ proc queryPastStorageRequestedEvents*(
 ): Future[seq[StorageRequested]] {.async.} =
   convertEthersError:
     let fromBlock = await market.contract.provider.pastBlockTag(blocksAgo)
+
     return await market.queryPastStorageRequestedEvents(fromBlock)
 
-proc queryPastStorageRequestedEvents*(
+proc queryPastStorageRequestedEventsFromTime*(
     market: OnChainMarket, fromTime: int64
 ): Future[seq[StorageRequested]] {.async.} =
   convertEthersError:
     let fromBlock = await market.contract.provider.blockNumberForEpoch(fromTime)
+
     return await market.queryPastStorageRequestedEvents(BlockTag.init(fromBlock))
-
-proc slotCollateral*(
-    market: OnChainMarket, collateralPerSlot: UInt256, slotState: SlotState
-): ?!UInt256 {.raises: [].} =
-  if slotState == SlotState.Repair:
-    without repairRewardPercentage =?
-      market.configuration .? collateral .? repairRewardPercentage:
-      return failure newException(
-        MarketError,
-        "Failure calculating the slotCollateral, cannot get the reward percentage",
-      )
-
-    return success (
-      collateralPerSlot - (collateralPerSlot * repairRewardPercentage.u256).div(
-        100.u256
-      )
-    )
-
-  return success(collateralPerSlot)
-
-proc slotCollateral*(
-    market: OnChainMarket, requestId: RequestId, slotIndex: uint64
-): Future[?!UInt256] {.async: (raises: [CancelledError]).} =
-  let slotid = slotId(requestId, slotIndex)
-
-  try:
-    let slotState = await market.slotState(slotid)
-
-    without request =? await market.getRequest(requestId):
-      return failure newException(
-        MarketError, "Failure calculating the slotCollateral, cannot get the request"
-      )
-
-    return market.slotCollateral(request.ask.collateralPerSlot, slotState)
-  except MarketError as error:
-    error "Error when trying to calculate the slotCollateral", error = error.msg
-    return failure error

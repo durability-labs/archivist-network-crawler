@@ -71,7 +71,8 @@ method iteratePastNewRequestEvents*(
 
   if market =? m.market:
     try:
-      let requests = await market.queryPastStorageRequestedEvents(startTime.int64)
+      let requests =
+        await market.queryPastStorageRequestedEventsFromTime(startTime.int64)
       for request in requests:
         if error =? (await onNewRequest(Rid(request.requestId))).errorOption:
           return failure(error.msg)
