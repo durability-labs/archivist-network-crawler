@@ -25,9 +25,12 @@ type
     numPending: int
     numSlots: int
     totalSize: int64
+    totalPrice: uint64
 
 proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
-  var update = Update(numRequests: 0, numPending: 0, numSlots: 0, totalSize: 0)
+  var update = Update(
+    numRequests: 0, numPending: 0, numSlots: 0, totalSize: 0, totalPrice: 0.uint64
+  )
 
   proc onRequest(entry: RequestEntry): Future[?!void] {.async: (raises: []).} =
     let response = await c.marketplace.getRequestInfo(entry.id)
@@ -40,6 +43,7 @@ proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
         inc update.numRequests
         update.numSlots += info.slots.int
         update.totalSize += (info.slots * info.slotSize).int64
+        update.totalPrice += info.pricePerBytePerSecond
     else:
       ?await c.store.remove(entry.id)
     return success()
@@ -52,6 +56,7 @@ proc updateMetrics(c: ChainMetrics, update: Update) =
   c.metrics.setPendingRequests(update.numPending)
   c.metrics.setRequestSlots(update.numSlots)
   c.metrics.setTotalSize(update.totalSize)
+  c.metrics.setPrice(update.totalPrice.int64)
 
 proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
   without update =? (await c.collectUpdate()), err:

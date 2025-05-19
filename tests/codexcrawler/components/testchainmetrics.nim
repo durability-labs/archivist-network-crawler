@@ -103,3 +103,15 @@ suite "ChainMetrics":
 
     check:
       metrics.totalSize == (info.slots * info.slotSize).int
+
+  test "onStep should count the total active price per byte per second":
+    let rid = genRid()
+    store.iterateEntries.add(RequestEntry(id: rid))
+
+    let info = RequestInfo(slots: 12, pricePerBytePerSecond: 456.uint64)
+    marketplace.requestInfoReturns = some(info)
+
+    await onStep()
+
+    check:
+      metrics.totalPrice == info.pricePerBytePerSecond.int64

@@ -23,6 +23,7 @@ type
     pending*: bool
     slots*: uint64
     slotSize*: uint64
+    pricePerBytePerSecond*: uint64
 
 proc notStarted() =
   raiseAssert("MarketplaceService was called before it was started.")
@@ -33,8 +34,15 @@ proc fetchRequestInfo(
   try:
     let request = await market.getRequest(rid)
     if r =? request:
-      return
-        some(RequestInfo(pending: false, slots: r.ask.slots, slotSize: r.ask.slotSize))
+      let price = r.ask.pricePerBytePerSecond.truncate(uint64)
+      return some(
+        RequestInfo(
+          pending: false,
+          slots: r.ask.slots,
+          slotSize: r.ask.slotSize,
+          pricePerBytePerSecond: price,
+        )
+      )
   except CatchableError as exc:
     trace "Failed to get request info", err = exc.msg
   return none(RequestInfo)

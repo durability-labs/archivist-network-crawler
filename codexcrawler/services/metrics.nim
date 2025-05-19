@@ -12,6 +12,10 @@ declareGauge(requestSlotsGauge, "Marketplace active storage request slots")
 declareGauge(
   totalStorageSizeGauge, "Marketplace total bytes stored in active storage requests"
 )
+declareGauge(
+  totalPriceGauge,
+  "Marketplace total price per byte per second of all active storage requests",
+)
 
 type
   OnUpdateMetric = proc(value: int64): void {.gcsafe, raises: [].}
@@ -25,6 +29,7 @@ type
     onPending: OnUpdateMetric
     onRequestSlots: OnUpdateMetric
     onTotalSize: OnUpdateMetric
+    onPrice: OnUpdateMetric
 
 proc startServer(metricsAddress: IpAddress, metricsPort: Port) =
   let metricsAddress = metricsAddress
@@ -58,6 +63,9 @@ method setRequestSlots*(m: Metrics, value: int) {.base, gcsafe, raises: [].} =
 method setTotalSize*(m: Metrics, value: int64) {.base, gcsafe, raises: [].} =
   m.onTotalSize(value.int64)
 
+method setPrice*(m: Metrics, value: int64) {.base, gcsafe, raises: [].} =
+  m.onPrice(value.int64)
+
 proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
   startServer(metricsAddress, metricsPort)
 
@@ -84,6 +92,9 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
   proc onTotalSize(value: int64) =
     totalStorageSizeGauge.set(value)
 
+  proc onPrice(value: int64) =
+    totalPriceGauge.set(value)
+
   return Metrics(
     todoNodes: onTodo,
     okNodes: onOk,
@@ -92,4 +103,5 @@ proc createMetrics*(metricsAddress: IpAddress, metricsPort: Port): Metrics =
     onPending: onPending,
     onRequestSlots: onRequestSlots,
     onTotalSize: onTotalSize,
+    onPrice: onPrice,
   )
