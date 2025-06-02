@@ -127,3 +127,9 @@
 [submodule "vendor/nim-docopt"]
 	path = vendor/nim-docopt
 	url = https://github.com/docopt/docopt.nim.git
+[submodule "vendor/nim-regex"]
+	path = vendor/nim-regex
+	url = https://github.com/nitely/nim-regex.git
+[submodule "vendor/nim-unicodedb"]
+	path = vendor/nim-unicodedb
+	url = https://github.com/nitely/nim-unicodedb.git
