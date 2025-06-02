@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        nim: [2.0.14]
+        nim: [2.2.4]
     steps:
     - uses: actions/checkout@v2
       with:
@@ -30,22 +30,18 @@ jobs:
       with:
         version: ${{ matrix.nim }}
 
-    - name: Enable git long paths
+    - name: Build Nim and dependencies
       run: |
-        git config --system core.longpaths true
+        which gcc
+        gcc --version
+        make -j${ncpu} update
+        ./env.sh nim --version
+        make -j${ncpu}
 
-    - name: Update nimble
+    - name: Run tests
       run: |
-        nimble install nimble
-        nimble --version
+        make -j${ncpu} test
 
-    - name: Use updated nimble version on Windows
-      if: contains(matrix.os, 'windows')
+    - name: Build crawler
       run: |
-        del $HOME\.nimble\bin\nimble.exe
-        nimble --version
-
-    - name: Build
-      run: nimble build -y
-    - name: Test
-      run: nimble test -y
+        make -j${ncpu}
