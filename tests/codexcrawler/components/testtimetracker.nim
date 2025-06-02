@@ -37,7 +37,7 @@ suite "TimeTracker":
 
     # Subscribe to nodesToRevisit event
     nodesToRevisitReceived = newSeq[Nid]()
-    proc onToRevisit(nids: seq[Nid]): Future[?!void] {.async.} =
+    proc onToRevisit(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
       nodesToRevisitReceived = nids
       return success()
 
@@ -53,11 +53,17 @@ suite "TimeTracker":
     await state.events.nodesToRevisit.unsubscribe(sub)
     state.checkAllUnsubscribed()
 
-  proc onStepCheck() {.async.} =
-    (await state.steppers[0]()).tryGet()
+  proc onStepCheck() {.async: (raises: []).} =
+    try:
+      (await state.steppers[0]()).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in onStepCheck")
 
-  proc onStepRt() {.async.} =
-    (await state.steppers[1]()).tryGet()
+  proc onStepRt() {.async: (raises: []).} =
+    try:
+      (await state.steppers[1]()).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in onStepRt")
 
   proc createNodeInStore(lastVisit: uint64, firstInactive = 0.uint64): Nid =
     let entry =
@@ -120,7 +126,7 @@ suite "TimeTracker":
 
   test "onStep raises routingTable nodes as nodesFound":
     var nodesFound = newSeq[Nid]()
-    proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
+    proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
       nodesFound = nids
       return success()
 

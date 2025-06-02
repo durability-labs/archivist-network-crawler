@@ -38,11 +38,17 @@ suite "Nodestore":
     state.checkAllUnsubscribed()
     removeDir(dsPath)
 
-  proc fireNodeFoundEvent(nids: seq[Nid]) {.async.} =
-    (await state.events.nodesFound.fire(nids)).tryGet()
+  proc fireNodeFoundEvent(nids: seq[Nid]) {.async: (raises: []).} =
+    try:
+      (await state.events.nodesFound.fire(nids)).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in fireNodeFoundEvent")
 
-  proc fireCheckEvent(nid: Nid, isOk: bool) {.async.} =
-    (await state.events.dhtNodeCheck.fire(DhtNodeCheckEventData(id: nid, isOk: isOk))).tryGet()
+  proc fireCheckEvent(nid: Nid, isOk: bool) {.async: (raises: []).} =
+    try:
+      (await state.events.dhtNodeCheck.fire(DhtNodeCheckEventData(id: nid, isOk: isOk))).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in fireCheckEvent")
 
   test "nodeEntry encoding":
     let entry =
@@ -73,7 +79,7 @@ suite "Nodestore":
 
   test "nodesFound event should fire newNodesDiscovered":
     var newNodes = newSeq[Nid]()
-    proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async.} =
+    proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
       newNodes = nids
       return success()
 
@@ -97,7 +103,7 @@ suite "Nodestore":
     var
       newNodes = newSeq[Nid]()
       count = 0
-    proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async.} =
+    proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
       newNodes = nids
       inc count
       return success()
@@ -175,7 +181,7 @@ suite "Nodestore":
 
   test "deleteEntries fires nodesDeleted event":
     var deletedNodes = newSeq[Nid]()
-    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async.} =
+    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
       deletedNodes = nids
       return success()
 
@@ -245,7 +251,7 @@ suite "Nodestore":
 
   test "dhtNodeCheck event for non-existing node should fire nodesDeleted":
     var deletedNodes = newSeq[Nid]()
-    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async.} =
+    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
       deletedNodes = nids
       return success()
 

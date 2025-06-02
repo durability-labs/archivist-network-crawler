@@ -12,17 +12,17 @@ type MockList* = ref object of List
   removeSuccess*: bool
   length*: int
 
-method load*(this: MockList): Future[?!void] {.async.} =
+method load*(this: MockList): Future[?!void] {.async: (raises: [CancelledError]).} =
   this.loadCalled = true
   return success()
 
-method add*(this: MockList, nid: Nid): Future[?!void] {.async.} =
+method add*(this: MockList, nid: Nid): Future[?!void] {.async: (raises: [CancelledError]).} =
   this.added.add(nid)
   if this.addSuccess:
     return success()
   return failure("test failure")
 
-method remove*(this: MockList, nid: Nid): Future[?!void] {.async.} =
+method remove*(this: MockList, nid: Nid): Future[?!void] {.async: (raises: [CancelledError]).} =
   this.removed.add(nid)
   if this.removeSuccess:
     return success()

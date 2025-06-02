@@ -20,7 +20,7 @@ suite "AsyncDataEvent":
 
   test "Successful event":
     var data = ""
-    proc eventHandler(e: ExampleData): Future[?!void] {.async.} =
+    proc eventHandler(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       data = e.s
       success()
 
@@ -34,7 +34,7 @@ suite "AsyncDataEvent":
 
   test "Multiple events":
     var counter = 0
-    proc eventHandler(e: ExampleData): Future[?!void] {.async.} =
+    proc eventHandler(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       inc counter
       success()
 
@@ -54,15 +54,15 @@ suite "AsyncDataEvent":
       data1 = ""
       data2 = ""
       data3 = ""
-    proc eventHandler1(e: ExampleData): Future[?!void] {.async.} =
+    proc eventHandler1(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       data1 = e.s
       success()
 
-    proc eventHandler2(e: ExampleData): Future[?!void] {.async.} =
+    proc eventHandler2(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       data2 = e.s
       success()
 
-    proc eventHandler3(e: ExampleData): Future[?!void] {.async.} =
+    proc eventHandler3(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       data3 = e.s
       success()
 
@@ -82,7 +82,7 @@ suite "AsyncDataEvent":
     await event.unsubscribe(sub3)
 
   test "Failed event preserves error message":
-    proc eventHandler(e: ExampleData): Future[?!void] {.async.} =
+    proc eventHandler(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       failure(msg)
 
     let s = event.subscribe(eventHandler)
@@ -100,15 +100,15 @@ suite "AsyncDataEvent":
       data2 = ""
       data3 = ""
 
-    proc handler1(e: ExampleData): Future[?!void] {.async.} =
+    proc handler1(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       data1 = e.s
       success()
 
-    proc handler2(e: ExampleData): Future[?!void] {.async.} =
+    proc handler2(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       data2 = e.s
       success()
 
-    proc handler3(e: ExampleData): Future[?!void] {.async.} =
+    proc handler3(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       data3 = e.s
       success()
 
@@ -134,18 +134,18 @@ suite "AsyncDataEvent":
       isOK(await event.fire(ExampleData(s: msg)))
 
   test "Can unsubscribe in handler":
-    proc doNothing() {.async, closure.} =
+    proc doNothing() {.async: (raises: [CancelledError]), closure.} =
       await sleepAsync(1.millis)
 
     var callback = doNothing
 
-    proc eventHandler(e: ExampleData): Future[?!void] {.async.} =
+    proc eventHandler(e: ExampleData): Future[?!void] {.async: (raises: [CancelledError]).} =
       await callback()
       success()
 
     let s = event.subscribe(eventHandler)
 
-    proc doUnsubscribe() {.async.} =
+    proc doUnsubscribe() {.async: (raises: [CancelledError]).} =
       await event.unsubscribe(s)
 
     callback = doUnsubscribe

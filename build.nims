@@ -34,9 +34,9 @@ task codexcrawler, "build codexcrawler binary":
     params = "-d:chronicles_runtime_filtering -d:chronicles_log_level=TRACE"
 
 task testCodexcrawler, "Build & run Codex Crawler tests":
-  test "testCodexCrawler", params = "-d:codex_enable_proof_failures=true"
+  test "testCodexCrawler"
 
-task build, "build codex binary":
+task build, "build codex crawler binary":
   codexCrawlerTask()
 
 task test, "Run tests":
