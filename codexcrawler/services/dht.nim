@@ -75,7 +75,9 @@ method getNeighbors*(
   except CatchableError as exc:
     return failure(exc.msg)
 
-proc findPeer*(d: Dht, peerId: PeerId): Future[?PeerRecord] {.async: (raises: [CancelledError]).} =
+proc findPeer*(
+    d: Dht, peerId: PeerId
+): Future[?PeerRecord] {.async: (raises: [CancelledError]).} =
   trace "protocol.resolve..."
   try:
     let node = await d.protocol.resolve(toNodeId(peerId))

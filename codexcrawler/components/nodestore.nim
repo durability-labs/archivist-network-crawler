@@ -79,7 +79,9 @@ proc decode*(T: type NodeEntry, bytes: seq[byte]): ?!T =
   except ValueError as err:
     return failure(err.msg)
 
-proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async: (raises: [CancelledError]).} =
+proc storeNodeIsNew(
+    s: NodeStore, nid: Nid
+): Future[?!bool] {.async: (raises: [CancelledError]).} =
   without key =? Key.init(nodestoreName / $nid), err:
     error "failed to format key", err = err.msg
     return failure(err)
@@ -94,7 +96,9 @@ proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async: (raises: [C
 
   return success(not exists)
 
-proc fireNewNodesDiscovered(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+proc fireNewNodesDiscovered(
+    s: NodeStore, nids: seq[Nid]
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   await s.state.events.newNodesDiscovered.fire(nids)
 
 proc fireNodesDeleted(
@@ -102,7 +106,9 @@ proc fireNodesDeleted(
 ): Future[?!void] {.async: (raises: []).} =
   await s.state.events.nodesDeleted.fire(nids)
 
-proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+proc processFoundNodes(
+    s: NodeStore, nids: seq[Nid]
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   var newNodes = newSeq[Nid]()
   for nid in nids:
     without isNew =? (await s.storeNodeIsNew(nid)), err:
@@ -145,7 +151,9 @@ proc processNodeCheck(
   ?await s.store.put(key, entry)
   return success()
 
-proc deleteEntry(s: NodeStore, nid: Nid): Future[?!bool] {.async: (raises: [CancelledError]).} =
+proc deleteEntry(
+    s: NodeStore, nid: Nid
+): Future[?!bool] {.async: (raises: [CancelledError]).} =
   without key =? Key.init(nodestoreName / $nid), err:
     error "failed to format key", err = err.msg
     return failure(err)
@@ -208,10 +216,14 @@ method deleteEntries*(
 method start*(s: NodeStore): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "starting..."
 
-  proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+  proc onNodesFound(
+      nids: seq[Nid]
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     return await s.processFoundNodes(nids)
 
-  proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async: (raises: [CancelledError]).} =
+  proc onCheck(
+      event: DhtNodeCheckEventData
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     return await s.processNodeCheck(event)
 
   s.subFound = s.state.events.nodesFound.subscribe(onNodesFound)

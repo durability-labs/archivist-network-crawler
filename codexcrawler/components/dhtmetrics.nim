@@ -38,7 +38,9 @@ proc handleCheckEvent(
   d.updateMetrics()
   return success()
 
-proc handleDeleteEvent(d: DhtMetrics, nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+proc handleDeleteEvent(
+    d: DhtMetrics, nids: seq[Nid]
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   for nid in nids:
     ?await d.ok.remove(nid)
     ?await d.nok.remove(nid)
@@ -46,7 +48,9 @@ proc handleDeleteEvent(d: DhtMetrics, nids: seq[Nid]): Future[?!void] {.async: (
   return success()
 
 method awake*(d: DhtMetrics): Future[?!void] {.async: (raises: [CancelledError]).} =
-  proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async: (raises: [CancelledError]).} =
+  proc onCheck(
+      event: DhtNodeCheckEventData
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     await d.handleCheckEvent(event)
 
   proc onDelete(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =

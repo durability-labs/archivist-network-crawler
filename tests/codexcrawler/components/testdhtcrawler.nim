@@ -40,7 +40,7 @@ suite "DhtCrawler":
       (await state.steppers[0]()).tryGet()
     except CatchableError:
       raiseAssert("CatchableError in onStep")
-    
+
   proc responsive(nid: Nid): GetNeighborsResponse =
     GetNeighborsResponse(isResponsive: true, nodeIds: @[nid])
 
@@ -71,7 +71,9 @@ suite "DhtCrawler":
 
   test "nodes returned by getNeighbors are raised as nodesFound":
     var nodesFound = newSeq[Nid]()
-    proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onNodesFound(
+        nids: seq[Nid]
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       nodesFound = nids
       return success()
 
@@ -89,7 +91,9 @@ suite "DhtCrawler":
 
   test "responsive result from getNeighbors raises the node as successful dhtNodeCheck":
     var checkEvent = DhtNodeCheckEventData()
-    proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onCheck(
+        event: DhtNodeCheckEventData
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       checkEvent = event
       return success()
 
@@ -108,7 +112,9 @@ suite "DhtCrawler":
 
   test "unresponsive result from getNeighbors raises the node as unsuccessful dhtNodeCheck":
     var checkEvent = DhtNodeCheckEventData()
-    proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onCheck(
+        event: DhtNodeCheckEventData
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       checkEvent = event
       return success()
 

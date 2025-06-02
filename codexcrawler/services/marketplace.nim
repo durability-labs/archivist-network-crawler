@@ -109,7 +109,9 @@ method getRequestInfo*(
   else:
     notStarted()
 
-method awake*(m: MarketplaceService): Future[?!void] {.async: (raises: [CancelledError]).} =
+method awake*(
+    m: MarketplaceService
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   try:
     let provider = JsonRpcProvider.new(m.state.config.ethProvider)
     without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):

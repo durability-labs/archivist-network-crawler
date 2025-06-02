@@ -15,7 +15,8 @@ type
     queue: AsyncEventQueue[?T]
     subscriptions: seq[AsyncDataEventSubscription]
 
-  AsyncDataEventHandler*[T] = proc(data: T): Future[?!void] {.gcsafe, async: (raises: [CancelledError]).}
+  AsyncDataEventHandler*[T] =
+    proc(data: T): Future[?!void] {.gcsafe, async: (raises: [CancelledError]).}
 
 proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
   AsyncDataEvent[T](
@@ -90,7 +91,9 @@ proc unsubscribe*[T](
   else:
     await event.performUnsubscribe(subscription)
 
-proc unsubscribeAll*[T](event: AsyncDataEvent[T]) {.async: (raises: [CancelledError]).} =
+proc unsubscribeAll*[T](
+    event: AsyncDataEvent[T]
+) {.async: (raises: [CancelledError]).} =
   let all = event.subscriptions
   for subscription in all:
     await event.unsubscribe(subscription)

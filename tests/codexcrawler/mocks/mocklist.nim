@@ -16,13 +16,17 @@ method load*(this: MockList): Future[?!void] {.async: (raises: [CancelledError])
   this.loadCalled = true
   return success()
 
-method add*(this: MockList, nid: Nid): Future[?!void] {.async: (raises: [CancelledError]).} =
+method add*(
+    this: MockList, nid: Nid
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   this.added.add(nid)
   if this.addSuccess:
     return success()
   return failure("test failure")
 
-method remove*(this: MockList, nid: Nid): Future[?!void] {.async: (raises: [CancelledError]).} =
+method remove*(
+    this: MockList, nid: Nid
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   this.removed.add(nid)
   if this.removeSuccess:
     return success()

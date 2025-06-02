@@ -39,7 +39,7 @@ suite "ChainMetrics":
       (await state.steppers[0]()).tryGet()
     except CatchableError:
       raiseAssert("CatchableError in onStep")
-    
+
   test "start should start stepper for config.requestCheckDelay minutes":
     check:
       state.delays.len == 1

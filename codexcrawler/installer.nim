@@ -18,7 +18,9 @@ import ./components/chainmetrics
 import ./components/chaincrawler
 import ./components/requeststore
 
-proc createComponents*(state: State): Future[?!seq[Component]] {.async: (raises: [CancelledError]).} =
+proc createComponents*(
+    state: State
+): Future[?!seq[Component]] {.async: (raises: [CancelledError]).} =
   var components: seq[Component] = newSeq[Component]()
   let clock = createClock()
 

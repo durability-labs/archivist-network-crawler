@@ -57,7 +57,9 @@ method pop*(t: TodoList): Future[?!Nid] {.async: (raises: []), base.} =
 method awake*(t: TodoList): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "initializing..."
 
-  proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+  proc onNewNodes(
+      nids: seq[Nid]
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     t.addNodes(nids)
     return success()
 

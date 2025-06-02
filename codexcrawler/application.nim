@@ -18,7 +18,9 @@ type Application* = ref object
   state: State
   components: seq[Component]
 
-proc initializeApp(app: Application, config: Config): Future[?!void] {.async: (raises: [CancelledError]).} =
+proc initializeApp(
+    app: Application, config: Config
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   app.state = State(
     status: ApplicationStatus.Running,
     config: config,

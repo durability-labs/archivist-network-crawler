@@ -79,7 +79,9 @@ suite "Nodestore":
 
   test "nodesFound event should fire newNodesDiscovered":
     var newNodes = newSeq[Nid]()
-    proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onNewNodes(
+        nids: seq[Nid]
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       newNodes = nids
       return success()
 
@@ -103,7 +105,9 @@ suite "Nodestore":
     var
       newNodes = newSeq[Nid]()
       count = 0
-    proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onNewNodes(
+        nids: seq[Nid]
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       newNodes = nids
       inc count
       return success()
@@ -181,7 +185,9 @@ suite "Nodestore":
 
   test "deleteEntries fires nodesDeleted event":
     var deletedNodes = newSeq[Nid]()
-    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onDeleted(
+        nids: seq[Nid]
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       deletedNodes = nids
       return success()
 
@@ -251,7 +257,9 @@ suite "Nodestore":
 
   test "dhtNodeCheck event for non-existing node should fire nodesDeleted":
     var deletedNodes = newSeq[Nid]()
-    proc onDeleted(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onDeleted(
+        nids: seq[Nid]
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       deletedNodes = nids
       return success()
 

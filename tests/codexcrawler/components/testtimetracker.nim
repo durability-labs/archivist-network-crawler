@@ -37,7 +37,9 @@ suite "TimeTracker":
 
     # Subscribe to nodesToRevisit event
     nodesToRevisitReceived = newSeq[Nid]()
-    proc onToRevisit(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onToRevisit(
+        nids: seq[Nid]
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       nodesToRevisitReceived = nids
       return success()
 
@@ -126,7 +128,9 @@ suite "TimeTracker":
 
   test "onStep raises routingTable nodes as nodesFound":
     var nodesFound = newSeq[Nid]()
-    proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
+    proc onNodesFound(
+        nids: seq[Nid]
+    ): Future[?!void] {.async: (raises: [CancelledError]).} =
       nodesFound = nids
       return success()
 

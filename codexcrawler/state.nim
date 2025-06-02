@@ -33,7 +33,9 @@ type
     config*: Config
     events*: Events
 
-proc delayedWorkerStart(s: State, step: OnStep, delay: Duration) {.async: (raises: [CancelledError]).} =
+proc delayedWorkerStart(
+    s: State, step: OnStep, delay: Duration
+) {.async: (raises: [CancelledError]).} =
   await sleepAsync(1.seconds)
 
   proc worker(): Future[void] {.async: (raises: [CancelledError]).} =
@@ -45,7 +47,9 @@ proc delayedWorkerStart(s: State, step: OnStep, delay: Duration) {.async: (raise
 
   asyncSpawn worker()
 
-method whileRunning*(s: State, step: OnStep, delay: Duration) {.async: (raises: []), base.} =
+method whileRunning*(
+    s: State, step: OnStep, delay: Duration
+) {.async: (raises: []), base.} =
   # We use a small delay before starting the workers because 'whileRunning' is likely called from
   # component 'start' methods, which are executed sequentially in arbitrary order (to prevent temporal coupling).
   # Worker steps might start raising events that other components haven't had time to subscribe to yet.
