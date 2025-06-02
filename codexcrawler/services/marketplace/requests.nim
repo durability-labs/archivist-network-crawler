@@ -3,7 +3,7 @@ import std/sequtils
 import std/typetraits
 import pkg/contractabi
 import pkg/nimcrypto
-import pkg/ethers/fields
+import pkg/ethers/contracts/fields
 import pkg/results
 import pkg/questionable/results
 import pkg/stew/byteutils

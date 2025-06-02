@@ -133,3 +133,6 @@
 [submodule "vendor/nim-unicodedb"]
 	path = vendor/nim-unicodedb
 	url = https://github.com/nitely/nim-unicodedb.git
+[submodule "vendor/nim-http-utils"]
+	path = vendor/nim-http-utils
+	url = https://github.com/status-im/nim-http-utils.git
