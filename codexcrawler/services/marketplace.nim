@@ -110,13 +110,16 @@ method getRequestInfo*(
     notStarted()
 
 method awake*(m: MarketplaceService): Future[?!void] {.async: (raises: [CancelledError]).} =
-  let provider = JsonRpcProvider.new(m.state.config.ethProvider)
-  without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):
-    return failure("Invalid MarketplaceAddress provided")
+  try:
+    let provider = JsonRpcProvider.new(m.state.config.ethProvider)
+    without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):
+      return failure("Invalid MarketplaceAddress provided")
 
-  let marketplace = Marketplace.new(marketplaceAddress, provider)
-  m.market = some(OnChainMarket.new(marketplace))
-  return success()
+    let marketplace = Marketplace.new(marketplaceAddress, provider)
+    m.market = some(OnChainMarket.new(marketplace))
+    return success()
+  except JsonRpcProviderError as err:
+    return failure(err.msg)
 
 proc new(T: type MarketplaceService, state: State, clock: Clock): MarketplaceService =
   return MarketplaceService(state: state, market: none(OnChainMarket), clock: clock)

@@ -28,9 +28,12 @@ proc encode(s: Nid): seq[byte] =
   s.toBytes()
 
 proc decode(T: type Nid, bytes: seq[byte]): ?!T =
-  if bytes.len < 1:
-    return success(Nid.fromStr("0"))
-  return Nid.fromBytes(bytes)
+  try:
+    if bytes.len < 1:
+      return success(Nid.fromStr("0"))
+    return Nid.fromBytes(bytes)
+  except ValueError as err:
+    return failure(err.msg)
 
 proc saveItem(this: List, item: Nid): Future[?!void] {.async: (raises: [CancelledError]).} =
   without itemKey =? Key.init(this.name / $item), err:
@@ -38,7 +41,7 @@ proc saveItem(this: List, item: Nid): Future[?!void] {.async: (raises: [Cancelle
   ?await this.store.put(itemKey, item)
   return success()
 
-method load*(this: List): Future[?!void] {.async, base.} =
+method load*(this: List): Future[?!void] {.async: (raises: [CancelledError]), base.} =
   without queryKey =? Key.init(this.name), err:
     return failure(err)
   without iter =? (await query[Nid](this.store, Query.init(queryKey))), err:
@@ -58,7 +61,7 @@ method load*(this: List): Future[?!void] {.async, base.} =
 proc contains*(this: List, nid: Nid): bool =
   this.items.anyIt(it == nid)
 
-method add*(this: List, nid: Nid): Future[?!void] {.async, base.} =
+method add*(this: List, nid: Nid): Future[?!void] {.async: (raises: [CancelledError]), base.} =
   if this.contains(nid):
     return success()
 
@@ -69,7 +72,7 @@ method add*(this: List, nid: Nid): Future[?!void] {.async, base.} =
 
   return success()
 
-method remove*(this: List, nid: Nid): Future[?!void] {.async, base.} =
+method remove*(this: List, nid: Nid): Future[?!void] {.async: (raises: [CancelledError]), base.} =
   if not this.contains(nid):
     return success()
 

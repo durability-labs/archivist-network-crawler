@@ -70,11 +70,14 @@ proc encode*(e: NodeEntry): seq[byte] =
   e.toBytes()
 
 proc decode*(T: type NodeEntry, bytes: seq[byte]): ?!T =
-  if bytes.len < 1:
-    return success(
-      NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64, firstInactive: 0.uint64)
-    )
-  return NodeEntry.fromBytes(bytes)
+  try:
+    if bytes.len < 1:
+      return success(
+        NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64, firstInactive: 0.uint64)
+      )
+    return NodeEntry.fromBytes(bytes)
+  except ValueError as err:
+    return failure(err.msg)
 
 proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async: (raises: [CancelledError]).} =
   without key =? Key.init(nodestoreName / $nid), err:

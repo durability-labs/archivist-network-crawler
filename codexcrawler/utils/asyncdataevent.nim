@@ -15,7 +15,7 @@ type
     queue: AsyncEventQueue[?T]
     subscriptions: seq[AsyncDataEventSubscription]
 
-  AsyncDataEventHandler*[T] = proc(data: T): Future[?!void]
+  AsyncDataEventHandler*[T] = proc(data: T): Future[?!void] {.gcsafe, async: (raises: [CancelledError]).}
 
 proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
   AsyncDataEvent[T](
@@ -41,14 +41,17 @@ proc subscribe*[T](
   )
 
   proc listener() {.async: (raises: [CancelledError]).} =
-    while true:
-      let items = await event.queue.waitEvents(subscription.key)
-      for item in items:
-        if data =? item:
-          subscription.inHandler = true
-          subscription.lastResult = (await handler(data))
-          subscription.inHandler = false
-      subscription.fireEvent.fire()
+    try:
+      while true:
+        let items = await event.queue.waitEvents(subscription.key)
+        for item in items:
+          if data =? item:
+            subscription.inHandler = true
+            subscription.lastResult = (await handler(data))
+            subscription.inHandler = false
+        subscription.fireEvent.fire()
+    except AsyncEventQueueFullError as err:
+      raiseAssert("AsyncEventQueueFullError in asyncdataevent.listener()")
 
   subscription.listenFuture = listener()
 

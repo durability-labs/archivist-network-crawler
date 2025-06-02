@@ -113,12 +113,18 @@ proc updateDhtRecord(d: Dht, addrs: openArray[MultiAddress]) =
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
 method start*(d: Dht): Future[?!void] {.async: (raises: [CancelledError]).} =
-  d.protocol.open()
-  await d.protocol.start()
+  try:
+    d.protocol.open()
+    await d.protocol.start()
+  except CatchableError as exc:
+    return failure(exc.msg)
   return success()
 
 method stop*(d: Dht): Future[?!void] {.async: (raises: [CancelledError]).} =
-  await d.protocol.closeWait()
+  try:
+    await d.protocol.closeWait()
+  except CatchableError as exc:
+    return failure(exc.msg)
   return success()
 
 proc new(

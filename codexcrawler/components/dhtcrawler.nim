@@ -53,7 +53,10 @@ method start*(c: DhtCrawler): Future[?!void] {.async: (raises: [CancelledError])
     await c.step()
 
   if c.state.config.dhtEnable:
-    await c.state.whileRunning(onStep, c.state.config.stepDelayMs.milliseconds)
+    try:
+      await c.state.whileRunning(onStep, c.state.config.stepDelayMs.milliseconds)
+    except CatchableError as err:
+      return failure(err.msg)
 
   return success()
 
