@@ -106,3 +106,6 @@
 [submodule "vendor/constantine"]
 	path = vendor/constantine
 	url = https://github.com/mratsim/constantine.git
+[submodule "vendor/nim-taskpools"]
+	path = vendor/nim-taskpools
+	url = https://github.com/status-im/nim-taskpools.git
