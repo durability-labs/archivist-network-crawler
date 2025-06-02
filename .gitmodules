@@ -121,3 +121,6 @@
 [submodule "vendor/nim-sqlite3-abi"]
 	path = vendor/nim-sqlite3-abi
 	url = https://github.com/arnetheduck/nim-sqlite3-abi.git
+[submodule "vendor/nim-leveldbstatic"]
+	path = vendor/nim-leveldbstatic
+	url = https://github.com/codex-storage/nim-leveldb.git
