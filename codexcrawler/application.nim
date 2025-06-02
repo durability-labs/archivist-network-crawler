@@ -18,7 +18,9 @@ type Application* = ref object
   state: State
   components: seq[Component]
 
-proc initializeApp(app: Application, config: Config): Future[?!void] {.async.} =
+proc initializeApp(
+    app: Application, config: Config
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   app.state = State(
     status: ApplicationStatus.Running,
     config: config,
@@ -48,7 +50,7 @@ proc initializeApp(app: Application, config: Config): Future[?!void] {.async.} =
 
   return success()
 
-proc stopComponents(app: Application) {.async.} =
+proc stopComponents(app: Application) {.async: (raises: [CancelledError]).} =
   for c in app.components:
     if err =? (await c.stop()).errorOption:
       error "Failed to stop component", err = err.msg

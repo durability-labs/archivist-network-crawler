@@ -1,6 +1,6 @@
 # Variables
-ARG BUILDER=codexstorage/nim-lang:2.0.14
-ARG IMAGE=ubuntu:24.04
+ARG BUILDER=ubuntu:24.04
+ARG IMAGE=${BUILDER}
 ARG BUILD_HOME=/src
 ARG MAKE_PARALLEL=${MAKE_PARALLEL:-4}
 ARG NIMFLAGS="${NIMFLAGS:-"-d:disableMarchNative"}"
@@ -15,12 +15,12 @@ ARG NIMFLAGS
 ARG USE_LIBBACKTRACE
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y cmake build-essential
+RUN apt-get update && apt-get install -y git cmake curl make bash build-essential
 
 WORKDIR ${BUILD_HOME}
 COPY . .
-RUN nimble install nimble
-RUN nimble build
+RUN make -j ${MAKE_PARALLEL} update
+RUN make -j ${MAKE_PARALLEL}
 
 # Create
 FROM ${IMAGE}

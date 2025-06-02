@@ -15,7 +15,9 @@ proc checkAllUnsubscribed*(s: MockState) =
     s.events.dhtNodeCheck.listeners == 0
     s.events.nodesToRevisit.listeners == 0
 
-method whileRunning*(s: MockState, step: OnStep, delay: Duration) {.async.} =
+method whileRunning*(
+    s: MockState, step: OnStep, delay: Duration
+) {.async: (raises: []).} =
   s.steppers.add(step)
   s.delays.add(delay)
 

@@ -56,7 +56,7 @@ proc raiseRoutingTableNodes(t: TimeTracker): Future[?!void] {.async: (raises: []
     return failure(err)
   return success()
 
-method start*(t: TimeTracker): Future[?!void] {.async.} =
+method start*(t: TimeTracker): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "starting..."
 
   proc onCheckRevisitAndExpiry(): Future[?!void] {.async: (raises: []), gcsafe.} =

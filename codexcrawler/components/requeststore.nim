@@ -51,9 +51,12 @@ proc encode*(e: RequestEntry): seq[byte] =
   e.toBytes()
 
 proc decode*(T: type RequestEntry, bytes: seq[byte]): ?!T =
-  if bytes.len < 1:
-    return success(RequestEntry(isValid: false))
-  return RequestEntry.fromBytes(bytes)
+  try:
+    if bytes.len < 1:
+      return success(RequestEntry(isValid: false))
+    return RequestEntry.fromBytes(bytes)
+  except ValueError as err:
+    return failure(err.msg)
 
 method add*(s: RequestStore, rid: Rid): Future[?!void] {.async: (raises: []), base.} =
   without key =? Key.init(requeststoreName / $rid), err:

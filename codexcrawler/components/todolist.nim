@@ -54,10 +54,12 @@ method pop*(t: TodoList): Future[?!Nid] {.async: (raises: []), base.} =
 
   return success(item)
 
-method awake*(t: TodoList): Future[?!void] {.async.} =
+method awake*(t: TodoList): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "initializing..."
 
-  proc onNewNodes(nids: seq[Nid]): Future[?!void] {.async.} =
+  proc onNewNodes(
+      nids: seq[Nid]
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     t.addNodes(nids)
     return success()
 
@@ -65,7 +67,7 @@ method awake*(t: TodoList): Future[?!void] {.async.} =
   t.subRev = t.state.events.nodesToRevisit.subscribe(onNewNodes)
   return success()
 
-method stop*(t: TodoList): Future[?!void] {.async.} =
+method stop*(t: TodoList): Future[?!void] {.async: (raises: [CancelledError]).} =
   await t.state.events.newNodesDiscovered.unsubscribe(t.subNew)
   await t.state.events.nodesToRevisit.unsubscribe(t.subRev)
   return success()

@@ -35,13 +35,18 @@ suite "DhtMetrics":
     (await dhtmetrics.stop()).tryGet()
     state.checkAllUnsubscribed()
 
-  proc fireDhtNodeCheckEvent(isOk: bool) {.async.} =
+  proc fireDhtNodeCheckEvent(isOk: bool) {.async: (raises: []).} =
     let event = DhtNodeCheckEventData(id: nid, isOk: isOk)
+    try:
+      (await state.events.dhtNodeCheck.fire(event)).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in fireDhtNodeCheckEvent")
 
-    (await state.events.dhtNodeCheck.fire(event)).tryGet()
-
-  proc fireNodesDeletedEvent(nids: seq[Nid]) {.async.} =
-    (await state.events.nodesDeleted.fire(nids)).tryGet()
+  proc fireNodesDeletedEvent(nids: seq[Nid]) {.async: (raises: []).} =
+    try:
+      (await state.events.nodesDeleted.fire(nids)).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in fireNodesDeletedEvent")
 
   test "dhtmetrics start should load both lists":
     check:

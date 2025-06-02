@@ -29,11 +29,17 @@ suite "TodoList":
     (await todo.stop()).tryGet()
     state.checkAllUnsubscribed()
 
-  proc fireNewNodesDiscoveredEvent(nids: seq[Nid]) {.async.} =
-    (await state.events.newNodesDiscovered.fire(nids)).tryGet()
+  proc fireNewNodesDiscoveredEvent(nids: seq[Nid]) {.async: (raises: []).} =
+    try:
+      (await state.events.newNodesDiscovered.fire(nids)).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in fireNewNodesDiscoveredEvent")
 
-  proc fireNodesToRevisitEvent(nids: seq[Nid]) {.async.} =
-    (await state.events.nodesToRevisit.fire(nids)).tryGet()
+  proc fireNodesToRevisitEvent(nids: seq[Nid]) {.async: (raises: []).} =
+    try:
+      (await state.events.nodesToRevisit.fire(nids)).tryGet()
+    except CatchableError:
+      raiseAssert("CatchableError in fireNodesToRevisitEvent")
 
   test "discovered nodes are added to todo list":
     await fireNewNodesDiscoveredEvent(@[nid])

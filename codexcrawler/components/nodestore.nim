@@ -70,13 +70,18 @@ proc encode*(e: NodeEntry): seq[byte] =
   e.toBytes()
 
 proc decode*(T: type NodeEntry, bytes: seq[byte]): ?!T =
-  if bytes.len < 1:
-    return success(
-      NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64, firstInactive: 0.uint64)
-    )
-  return NodeEntry.fromBytes(bytes)
+  try:
+    if bytes.len < 1:
+      return success(
+        NodeEntry(id: Nid.fromStr("0"), lastVisit: 0.uint64, firstInactive: 0.uint64)
+      )
+    return NodeEntry.fromBytes(bytes)
+  except ValueError as err:
+    return failure(err.msg)
 
-proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
+proc storeNodeIsNew(
+    s: NodeStore, nid: Nid
+): Future[?!bool] {.async: (raises: [CancelledError]).} =
   without key =? Key.init(nodestoreName / $nid), err:
     error "failed to format key", err = err.msg
     return failure(err)
@@ -91,7 +96,9 @@ proc storeNodeIsNew(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
 
   return success(not exists)
 
-proc fireNewNodesDiscovered(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
+proc fireNewNodesDiscovered(
+    s: NodeStore, nids: seq[Nid]
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   await s.state.events.newNodesDiscovered.fire(nids)
 
 proc fireNodesDeleted(
@@ -99,7 +106,9 @@ proc fireNodesDeleted(
 ): Future[?!void] {.async: (raises: []).} =
   await s.state.events.nodesDeleted.fire(nids)
 
-proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
+proc processFoundNodes(
+    s: NodeStore, nids: seq[Nid]
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   var newNodes = newSeq[Nid]()
   for nid in nids:
     without isNew =? (await s.storeNodeIsNew(nid)), err:
@@ -114,7 +123,7 @@ proc processFoundNodes(s: NodeStore, nids: seq[Nid]): Future[?!void] {.async.} =
 
 proc processNodeCheck(
     s: NodeStore, event: DhtNodeCheckEventData
-): Future[?!void] {.async.} =
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   without key =? Key.init(nodestoreName / $(event.id)), err:
     error "failed to format key", err = err.msg
     return failure(err)
@@ -142,7 +151,9 @@ proc processNodeCheck(
   ?await s.store.put(key, entry)
   return success()
 
-proc deleteEntry(s: NodeStore, nid: Nid): Future[?!bool] {.async.} =
+proc deleteEntry(
+    s: NodeStore, nid: Nid
+): Future[?!bool] {.async: (raises: [CancelledError]).} =
   without key =? Key.init(nodestoreName / $nid), err:
     error "failed to format key", err = err.msg
     return failure(err)
@@ -202,20 +213,24 @@ method deleteEntries*(
   ?await s.fireNodesDeleted(deleted)
   return success()
 
-method start*(s: NodeStore): Future[?!void] {.async.} =
+method start*(s: NodeStore): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "starting..."
 
-  proc onNodesFound(nids: seq[Nid]): Future[?!void] {.async.} =
+  proc onNodesFound(
+      nids: seq[Nid]
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     return await s.processFoundNodes(nids)
 
-  proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
+  proc onCheck(
+      event: DhtNodeCheckEventData
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     return await s.processNodeCheck(event)
 
   s.subFound = s.state.events.nodesFound.subscribe(onNodesFound)
   s.subCheck = s.state.events.dhtNodeCheck.subscribe(onCheck)
   return success()
 
-method stop*(s: NodeStore): Future[?!void] {.async.} =
+method stop*(s: NodeStore): Future[?!void] {.async: (raises: [CancelledError]).} =
   await s.state.events.nodesFound.unsubscribe(s.subFound)
   await s.state.events.dhtNodeCheck.unsubscribe(s.subCheck)
   return success()

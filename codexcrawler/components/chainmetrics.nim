@@ -65,7 +65,7 @@ proc step(c: ChainMetrics): Future[?!void] {.async: (raises: []).} =
   c.updateMetrics(update)
   return success()
 
-method start*(c: ChainMetrics): Future[?!void] {.async.} =
+method start*(c: ChainMetrics): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "starting..."
 
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =

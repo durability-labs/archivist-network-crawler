@@ -15,7 +15,8 @@ type
     queue: AsyncEventQueue[?T]
     subscriptions: seq[AsyncDataEventSubscription]
 
-  AsyncDataEventHandler*[T] = proc(data: T): Future[?!void]
+  AsyncDataEventHandler*[T] =
+    proc(data: T): Future[?!void] {.gcsafe, async: (raises: [CancelledError]).}
 
 proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
   AsyncDataEvent[T](
@@ -24,7 +25,7 @@ proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
 
 proc performUnsubscribe[T](
     event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription
-) {.async.} =
+) {.async: (raises: [CancelledError]).} =
   if subscription in event.subscriptions:
     await subscription.listenFuture.cancelAndWait()
     event.subscriptions.delete(event.subscriptions.find(subscription))
@@ -40,15 +41,18 @@ proc subscribe*[T](
     delayedUnsubscribe: false,
   )
 
-  proc listener() {.async.} =
-    while true:
-      let items = await event.queue.waitEvents(subscription.key)
-      for item in items:
-        if data =? item:
-          subscription.inHandler = true
-          subscription.lastResult = (await handler(data))
-          subscription.inHandler = false
-      subscription.fireEvent.fire()
+  proc listener() {.async: (raises: [CancelledError]).} =
+    try:
+      while true:
+        let items = await event.queue.waitEvents(subscription.key)
+        for item in items:
+          if data =? item:
+            subscription.inHandler = true
+            subscription.lastResult = (await handler(data))
+            subscription.inHandler = false
+        subscription.fireEvent.fire()
+    except AsyncEventQueueFullError as err:
+      raiseAssert("AsyncEventQueueFullError in asyncdataevent.listener()")
 
   subscription.listenFuture = listener()
 
@@ -81,13 +85,15 @@ proc fire*[T](
 
 proc unsubscribe*[T](
     event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription
-) {.async.} =
+) {.async: (raises: [CancelledError]).} =
   if subscription.inHandler:
     subscription.delayedUnsubscribe = true
   else:
     await event.performUnsubscribe(subscription)
 
-proc unsubscribeAll*[T](event: AsyncDataEvent[T]) {.async.} =
+proc unsubscribeAll*[T](
+    event: AsyncDataEvent[T]
+) {.async: (raises: [CancelledError]).} =
   let all = event.subscriptions
   for subscription in all:
     await event.unsubscribe(subscription)

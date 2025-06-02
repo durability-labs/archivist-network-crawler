@@ -27,7 +27,7 @@ proc updateMetrics(d: DhtMetrics) =
 
 proc handleCheckEvent(
     d: DhtMetrics, event: DhtNodeCheckEventData
-): Future[?!void] {.async.} =
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   if event.isOk:
     ?await d.ok.add(event.id)
     ?await d.nok.remove(event.id)
@@ -38,31 +38,35 @@ proc handleCheckEvent(
   d.updateMetrics()
   return success()
 
-proc handleDeleteEvent(d: DhtMetrics, nids: seq[Nid]): Future[?!void] {.async.} =
+proc handleDeleteEvent(
+    d: DhtMetrics, nids: seq[Nid]
+): Future[?!void] {.async: (raises: [CancelledError]).} =
   for nid in nids:
     ?await d.ok.remove(nid)
     ?await d.nok.remove(nid)
   d.updateMetrics()
   return success()
 
-method awake*(d: DhtMetrics): Future[?!void] {.async.} =
-  proc onCheck(event: DhtNodeCheckEventData): Future[?!void] {.async.} =
+method awake*(d: DhtMetrics): Future[?!void] {.async: (raises: [CancelledError]).} =
+  proc onCheck(
+      event: DhtNodeCheckEventData
+  ): Future[?!void] {.async: (raises: [CancelledError]).} =
     await d.handleCheckEvent(event)
 
-  proc onDelete(nids: seq[Nid]): Future[?!void] {.async.} =
+  proc onDelete(nids: seq[Nid]): Future[?!void] {.async: (raises: [CancelledError]).} =
     await d.handleDeleteEvent(nids)
 
   d.subCheck = d.state.events.dhtNodeCheck.subscribe(onCheck)
   d.subDel = d.state.events.nodesDeleted.subscribe(onDelete)
   return success()
 
-method start*(d: DhtMetrics): Future[?!void] {.async.} =
+method start*(d: DhtMetrics): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "starting..."
   ?await d.ok.load()
   ?await d.nok.load()
   return success()
 
-method stop*(d: DhtMetrics): Future[?!void] {.async.} =
+method stop*(d: DhtMetrics): Future[?!void] {.async: (raises: [CancelledError]).} =
   await d.state.events.dhtNodeCheck.unsubscribe(d.subCheck)
   await d.state.events.nodesDeleted.unsubscribe(d.subDel)
   return success()
