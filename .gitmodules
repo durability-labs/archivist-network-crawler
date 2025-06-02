@@ -16,8 +16,8 @@
 [submodule "vendor/nim-secp256k1"]
 	path = vendor/nim-secp256k1
 	url = https://github.com/status-im/nim-secp256k1.git
-[submodule "nim-stew"]
-	path = nim-stew
+[submodule "vendor/nim-stew"]
+	path = vendor/nim-stew
 	url = https://github.com/status-im/nim-stew.git
 [submodule "vendor/questionable"]
 	path = vendor/questionable
@@ -97,3 +97,6 @@
 [submodule "vendor/nph"]
 	path = vendor/nph
 	url = https://github.com/arnetheduck/nph.git
+[submodule "vendor/nim-faststreams"]
+	path = vendor/nim-faststreams
+	url = https://github.com/status-im/nim-faststreams.git
