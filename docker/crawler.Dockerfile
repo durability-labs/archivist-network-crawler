@@ -19,8 +19,8 @@ RUN apt-get update && apt-get install -y cmake build-essential
 
 WORKDIR ${BUILD_HOME}
 COPY . .
-RUN nimble install nimble
-RUN nimble build
+RUN make -j ${MAKE_PARALLEL} update
+RUN make -j ${MAKE_PARALLEL}
 
 # Create
 FROM ${IMAGE}
