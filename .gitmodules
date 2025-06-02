@@ -124,3 +124,6 @@
 [submodule "vendor/nim-leveldbstatic"]
 	path = vendor/nim-leveldbstatic
 	url = https://github.com/codex-storage/nim-leveldb.git
+[submodule "vendor/nim-docopt"]
+	path = vendor/nim-docopt
+	url = https://github.com/docopt/docopt.nim.git
