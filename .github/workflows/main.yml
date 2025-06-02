@@ -30,14 +30,14 @@ jobs:
       run: |
         which gcc
         gcc --version
-        make -j${ncpu} update
+        make update
         ./env.sh nim --version
-        make -j${ncpu}
+        make
 
     - name: Run tests
       run: |
-        make -j${ncpu} test
+        make test
 
     - name: Build crawler
       run: |
-        make -j${ncpu}
+        make
