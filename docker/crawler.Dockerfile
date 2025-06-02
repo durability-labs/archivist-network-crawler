@@ -15,7 +15,7 @@ ARG NIMFLAGS
 ARG USE_LIBBACKTRACE
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y cmake build-essential
+RUN apt-get update && apt-get install -y git cmake curl make bash lcov build-essential
 
 WORKDIR ${BUILD_HOME}
 COPY . .
