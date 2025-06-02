@@ -26,10 +26,6 @@ jobs:
       with:
         submodules: true
 
-    - uses: iffy/install-nim@v4
-      with:
-        version: ${{ matrix.nim }}
-
     - name: Build Nim and dependencies
       run: |
         which gcc
