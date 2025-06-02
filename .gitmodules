@@ -115,3 +115,6 @@
 [submodule "vendor/nim-ngtcp2"]
 	path = vendor/nim-ngtcp2
 	url = https://github.com/vacp2p/nim-ngtcp2.git
+[submodule "vendor/nim-datastore"]
+	path = vendor/nim-datastore
+	url = https://github.com/status-im/nim-datastore.git
