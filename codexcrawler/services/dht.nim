@@ -75,15 +75,18 @@ method getNeighbors*(
   except CatchableError as exc:
     return failure(exc.msg)
 
-proc findPeer*(d: Dht, peerId: PeerId): Future[?PeerRecord] {.async.} =
+proc findPeer*(d: Dht, peerId: PeerId): Future[?PeerRecord] {.async: (raises: [CancelledError]).} =
   trace "protocol.resolve..."
-  let node = await d.protocol.resolve(toNodeId(peerId))
-
-  return
-    if node.isSome():
-      node.get().record.data.some
-    else:
-      PeerRecord.none
+  try:
+    let node = await d.protocol.resolve(toNodeId(peerId))
+    return
+      if node.isSome():
+        node.get().record.data.some
+      else:
+        PeerRecord.none
+  except CatchableError as exc:
+    error "CatchableError in protocol.resolve", err = exc.msg
+    return PeerRecord.none
 
 method removeProvider*(d: Dht, peerId: PeerId): Future[void] {.base, gcsafe.} =
   trace "Removing provider", peerId
@@ -109,12 +112,12 @@ proc updateDhtRecord(d: Dht, addrs: openArray[MultiAddress]) =
   if not d.protocol.isNil:
     d.protocol.updateRecord(d.dhtRecord).expect("Should update SPR")
 
-method start*(d: Dht): Future[?!void] {.async.} =
+method start*(d: Dht): Future[?!void] {.async: (raises: [CancelledError]).} =
   d.protocol.open()
   await d.protocol.start()
   return success()
 
-method stop*(d: Dht): Future[?!void] {.async.} =
+method stop*(d: Dht): Future[?!void] {.async: (raises: [CancelledError]).} =
   await d.protocol.closeWait()
   return success()
 
@@ -154,7 +157,7 @@ proc new(
 
   self
 
-proc createDht*(state: State): Future[?!Dht] {.async.} =
+proc createDht*(state: State): Future[?!Dht] {.async: (raises: [CancelledError]).} =
   without dhtStore =? createDatastore(state.config.dataDir / "dht"), err:
     return failure(err)
   let keyPath = state.config.dataDir / "privatekey"

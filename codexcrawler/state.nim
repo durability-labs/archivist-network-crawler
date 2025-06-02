@@ -33,10 +33,10 @@ type
     config*: Config
     events*: Events
 
-proc delayedWorkerStart(s: State, step: OnStep, delay: Duration) {.async.} =
+proc delayedWorkerStart(s: State, step: OnStep, delay: Duration) {.async: (raises: [CancelledError]).} =
   await sleepAsync(1.seconds)
 
-  proc worker(): Future[void] {.async.} =
+  proc worker(): Future[void] {.async: (raises: [CancelledError]).} =
     while s.status == ApplicationStatus.Running:
       if err =? (await step()).errorOption:
         error "Failure-result caught in main loop. Stopping...", err = err.msg

@@ -24,7 +24,7 @@ proc newAsyncDataEvent*[T](): AsyncDataEvent[T] =
 
 proc performUnsubscribe[T](
     event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription
-) {.async.} =
+) {.async: (raises: [CancelledError]).} =
   if subscription in event.subscriptions:
     await subscription.listenFuture.cancelAndWait()
     event.subscriptions.delete(event.subscriptions.find(subscription))
@@ -40,7 +40,7 @@ proc subscribe*[T](
     delayedUnsubscribe: false,
   )
 
-  proc listener() {.async.} =
+  proc listener() {.async: (raises: [CancelledError]).} =
     while true:
       let items = await event.queue.waitEvents(subscription.key)
       for item in items:
@@ -81,13 +81,13 @@ proc fire*[T](
 
 proc unsubscribe*[T](
     event: AsyncDataEvent[T], subscription: AsyncDataEventSubscription
-) {.async.} =
+) {.async: (raises: [CancelledError]).} =
   if subscription.inHandler:
     subscription.delayedUnsubscribe = true
   else:
     await event.performUnsubscribe(subscription)
 
-proc unsubscribeAll*[T](event: AsyncDataEvent[T]) {.async.} =
+proc unsubscribeAll*[T](event: AsyncDataEvent[T]) {.async: (raises: [CancelledError]).} =
   let all = event.subscriptions
   for subscription in all:
     await event.unsubscribe(subscription)

@@ -46,7 +46,7 @@ proc step(c: DhtCrawler): Future[?!void] {.async: (raises: []).} =
 
   return success()
 
-method start*(c: DhtCrawler): Future[?!void] {.async.} =
+method start*(c: DhtCrawler): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "starting..."
 
   proc onStep(): Future[?!void] {.async: (raises: []), gcsafe.} =

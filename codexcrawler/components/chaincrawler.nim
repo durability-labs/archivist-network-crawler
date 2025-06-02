@@ -19,7 +19,7 @@ type ChainCrawler* = ref object of Component
 proc onNewRequest(c: ChainCrawler, rid: Rid): Future[?!void] {.async: (raises: []).} =
   return await c.store.add(rid)
 
-method start*(c: ChainCrawler): Future[?!void] {.async.} =
+method start*(c: ChainCrawler): Future[?!void] {.async: (raises: [CancelledError]).} =
   info "starting..."
 
   proc onRequest(rid: Rid): Future[?!void] {.async: (raises: []).} =

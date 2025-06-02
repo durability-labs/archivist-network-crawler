@@ -50,7 +50,7 @@ proc fetchRequestInfo(
 method subscribeToNewRequests*(
     m: MarketplaceService, onNewRequest: OnNewRequest
 ): Future[?!void] {.async: (raises: []), base.} =
-  proc resultWrapper(rid: Rid): Future[void] {.async.} =
+  proc resultWrapper(rid: Rid): Future[void] {.async: (raises: [CancelledError]).} =
     let response = await onNewRequest(rid)
     if error =? response.errorOption:
       raiseAssert("Error result in handling of onNewRequest callback: " & error.msg)
@@ -109,7 +109,7 @@ method getRequestInfo*(
   else:
     notStarted()
 
-method awake*(m: MarketplaceService): Future[?!void] {.async.} =
+method awake*(m: MarketplaceService): Future[?!void] {.async: (raises: [CancelledError]).} =
   let provider = JsonRpcProvider.new(m.state.config.ethProvider)
   without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):
     return failure("Invalid MarketplaceAddress provided")

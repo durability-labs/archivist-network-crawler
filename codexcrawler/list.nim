@@ -32,7 +32,7 @@ proc decode(T: type Nid, bytes: seq[byte]): ?!T =
     return success(Nid.fromStr("0"))
   return Nid.fromBytes(bytes)
 
-proc saveItem(this: List, item: Nid): Future[?!void] {.async.} =
+proc saveItem(this: List, item: Nid): Future[?!void] {.async: (raises: [CancelledError]).} =
   without itemKey =? Key.init(this.name / $item), err:
     return failure(err)
   ?await this.store.put(itemKey, item)
