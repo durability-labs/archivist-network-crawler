@@ -112,3 +112,6 @@
 [submodule "vendor/nim-quic"]
 	path = vendor/nim-quic
 	url = https://github.com/vacp2p/nim-quic.git
+[submodule "vendor/nim-ngtcp2"]
+	path = vendor/nim-ngtcp2
+	url = https://github.com/vacp2p/nim-ngtcp2.git
