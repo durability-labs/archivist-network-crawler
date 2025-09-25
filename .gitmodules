@@ -73,15 +73,15 @@
 [submodule "vendor/nim-blscurve"]
 	path = vendor/nim-blscurve
 	url = https://github.com/status-im/nim-blscurve.git
-[submodule "vendor/nim-codex-dht"]
-	path = vendor/nim-codex-dht
-	url = https://github.com/codex-storage/nim-codex-dht.git
+[submodule "vendor/archivist-dht"]
+	path = vendor/archivist-dht
+	url = https://github.com/durability-labs/archivist-dht.git
 [submodule "vendor/nim-eth"]
 	path = vendor/nim-eth
 	url = https://github.com/status-im/nim-eth
-[submodule "vendor/codex-contracts-eth"]
-	path = vendor/codex-contracts-eth
-	url = https://github.com/status-im/codex-contracts-eth
+[submodule "vendor/archivist-contracts"]
+	path = vendor/archivist-contracts
+	url = https://github.com/durability-labs/archivist-contracts.git
 [submodule "vendor/nim-protobuf-serialization"]
 	path = vendor/nim-protobuf-serialization
 	url = https://github.com/status-im/nim-protobuf-serialization
@@ -93,7 +93,7 @@
 	url = https://github.com/status-im/nim-testutils
 [submodule "vendor/nim-serde"]
 	path = vendor/nim-serde
-	url = https://github.com/codex-storage/nim-serde.git
+	url = https://github.com/durability-labs/nim-serde.git
 [submodule "vendor/nph"]
 	path = vendor/nph
 	url = https://github.com/arnetheduck/nph.git
@@ -102,7 +102,7 @@
 	url = https://github.com/status-im/nim-faststreams.git
 [submodule "vendor/nim-poseidon2"]
 	path = vendor/nim-poseidon2
-	url = https://github.com/codex-storage/nim-poseidon2.git
+	url = https://github.com/durability-labs/nim-poseidon2.git
 [submodule "vendor/constantine"]
 	path = vendor/constantine
 	url = https://github.com/mratsim/constantine.git
@@ -123,7 +123,7 @@
 	url = https://github.com/arnetheduck/nim-sqlite3-abi.git
 [submodule "vendor/nim-leveldbstatic"]
 	path = vendor/nim-leveldbstatic
-	url = https://github.com/codex-storage/nim-leveldb.git
+	url = https://github.com/durability-labs/nim-leveldbstatic.git
 [submodule "vendor/nim-docopt"]
 	path = vendor/nim-docopt
 	url = https://github.com/docopt/docopt.nim.git
