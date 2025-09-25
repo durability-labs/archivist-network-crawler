@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Variables
-AUTOPUBLICIP="$(curl -s http://ip.codex.storage)"
+AUTOPUBLICIP="$(curl -s http://ip.archivist.storage)"
 LOGLEVEL=${CRAWLER_LOGLEVEL:-INFO}
 PUBLICIP=${CRAWLER_PUBLICIP:-${AUTOPUBLICIP}}
 METRICSADDRESS=${CRAWLER_METRICSADDRESS:-0.0.0.0}

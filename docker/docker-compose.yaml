@@ -5,7 +5,7 @@ services:
       dockerfile: ./docker/crawler.Dockerfile
     environment:
       - CRAWLER_LOGLEVEL=TRACE
-      # - CRAWLER_PUBLICIP= Set to override CURL to ip.codex.storage
+      # - CRAWLER_PUBLICIP= Set to override CURL to ip.archivist.storage
       - CRAWLER_METRICSADDRESS=0.0.0.0
       - CRAWLER_METRICSPORT=8008
       - CRAWLER_DATADIR=crawler_data
