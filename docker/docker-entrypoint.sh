@@ -46,7 +46,7 @@ set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="
 
 # Show
 echo -e "\nRun parameters:"
-vars=$(env | grep "CRAWLER_" | grep -v -e "[0-9]*_SERVICE_" -e "[0-9]*_NODEPORT_")
+vars=$(env | grep "CRAWLER_" | grep -v -E -e "([0-9])*_SERVICE_" -e "[0-9]_NODEPORT_" -e "_PORT(_[0-9])*")
 echo -e "${vars//CRAWLER_/   - CRAWLER_}"
 echo -e "   - $@\n"
 
