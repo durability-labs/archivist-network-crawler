@@ -4,6 +4,7 @@ import pkg/chronicles
 import pkg/libp2p
 import pkg/archivistdht
 import ./utils/version
+import ./networkConfig
 
 let doc =
   """
@@ -19,7 +20,7 @@ Options:
   --metricsPort=<p>                 Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>                   Directory for storing data [default: crawler_data]
   --discoveryPort=<p>               Port used for DHT [default: 8090]
-  --bootNodes=<n>                   Semi-colon-separated list of Archivist bootstrap SPRs [default: testnet_sprs]
+  --bootNodes=<n>                   Override for bootstrap SPRs. Semi-colon-separated list. [default: network_default]
 
   --dhtEnable=<e>                   Set to "1" to enable DHT crawler [default: 1]
   --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 1000]
@@ -28,8 +29,8 @@ Options:
   --expiryDelay=<m>                 Delay in minutes after which unresponsive nodes are discarded [default: 1440] (24h)
 
   --marketplaceEnable=<e>           Set to "1" to enable marketplace metrics [default: 1]
-  --ethProvider=<a>                 Address including http(s) or ws of the eth provider
-  --marketplaceAddress=<a>          Eth address of Archivist contracts deployment
+  --ethProvider=<a>                 Override address including http(s) or ws of the eth provider [default: network_default]
+  --marketplaceAddress=<a>          Override Eth address of Archivist contracts deployment [default: network_default]
   --requestCheckDelay=<m>           Delay in minutes after which storage contract status is (re)checked [default: 10]
 """
 
@@ -56,6 +57,8 @@ type Config* = ref object
   marketplaceAddress*: string
   requestCheckDelay*: int
 
+const networkDefault = "network_default"
+
 proc `$`*(config: Config): string =
   "Crawler:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
     " metricsAddress=" & $config.metricsAddress & " metricsPort=" & $config.metricsPort &
@@ -66,28 +69,6 @@ proc `$`*(config: Config): string =
     $config.checkDelayMins & " marketplaceEnable=" & $config.marketplaceEnable &
     " ethProvider=" & config.ethProvider & " marketplaceAddress=" &
     config.marketplaceAddress & " requestCheckDelay=" & $config.requestCheckDelay
-
-proc getDefaultTestnetBootNodes(): seq[string] =
-  @[
-    "spr:CiUIAhIhA5mg11LZgFQ4XzIRb1T5xw9muFW1ALNKTijyKhQmvKYXEgIDARpJCicAJQgCEiEDmaDXUtmAVDhfMhFvVPnHD2a4VbUAs0pOKPIqFCa8phcQl-XFxQYaCwoJBE4vqKqRAnU6GgsKCQROL6iqkQJ1OipHMEUCIQDfzVYbN6A_O4i29e_FtDDUo7GJS3bkXRQtoteYbPSFtgIgcc8Kgj2ggVJyK16EY9xi4bY2lpTTeNIRjvslXSRdN5w",
-    "spr:CiUIAhIhAhmlZ1XaN44zPDuORyNJV8I79x2eSXt5-9AirVagKCAIEgIDARpJCicAJQgCEiECGaVnVdo3jjM8O45HI0lXwjv3HZ5Je3n70CKtVqAoIAgQ_OfFxQYaCwoJBAWhGBORAnVEGgsKCQQFoRgTkQJ1RCpHMEUCIQCgqSYPxyic9XmOcQYtJDKNprK_Uokz2UzjVZRnPYpOgQIgQ8m96ukov4XZG-j-XH53_vuoy3GkHuneUZ1Xe0luCxk",
-    "spr:CiUIAhIhAnCcHA-aqMx--nwf8cJyZKJavc-PuYNKKROoW_5Q1JcREgIDARpJCicAJQgCEiECcJwcD5qozH76fB_xwnJkolq9z4-5g0opE6hb_lDUlxEQje7FxQYaCwoJBAXfFdCRAnVOGgsKCQQF3xXQkQJ1TipGMEQCIA22oUekTsDAtsIOyrgtkG702FJPn8Xd-ifEVTUSuu7fAiBv9YyAg9iKuYBhgZKsZBHYfX8l0sXvm80s6U__EGGY-g",
-  ]
-
-
-proc getDefaultDevnetBootNodes(): seq[string] =
-  @[
-    "spr:CiUIAhIhA5mg11LZgFQ4XzIRb1T5xw9muFW1ALNKTijyKhQmvKYXEgIDARpJCicAJQgCEiEDmaDXUtmAVDhfMhFvVPnHD2a4VbUAs0pOKPIqFCa8phcQl-XFxQYaCwoJBE4vqKqRAnU6GgsKCQROL6iqkQJ1OipHMEUCIQDfzVYbN6A_O4i29e_FtDDUo7GJS3bkXRQtoteYbPSFtgIgcc8Kgj2ggVJyK16EY9xi4bY2lpTTeNIRjvslXSRdN5w",
-    "spr:CiUIAhIhAhmlZ1XaN44zPDuORyNJV8I79x2eSXt5-9AirVagKCAIEgIDARpJCicAJQgCEiECGaVnVdo3jjM8O45HI0lXwjv3HZ5Je3n70CKtVqAoIAgQ_OfFxQYaCwoJBAWhGBORAnVEGgsKCQQFoRgTkQJ1RCpHMEUCIQCgqSYPxyic9XmOcQYtJDKNprK_Uokz2UzjVZRnPYpOgQIgQ8m96ukov4XZG-j-XH53_vuoy3GkHuneUZ1Xe0luCxk",
-    "spr:CiUIAhIhAnCcHA-aqMx--nwf8cJyZKJavc-PuYNKKROoW_5Q1JcREgIDARpJCicAJQgCEiECcJwcD5qozH76fB_xwnJkolq9z4-5g0opE6hb_lDUlxEQje7FxQYaCwoJBAXfFdCRAnVOGgsKCQQF3xXQkQJ1TipGMEQCIA22oUekTsDAtsIOyrgtkG702FJPn8Xd-ifEVTUSuu7fAiBv9YyAg9iKuYBhgZKsZBHYfX8l0sXvm80s6U__EGGY-g",
-  ]
-
-proc getBootNodeStrings(input: string): seq[string] =
-  if input == "testnet_sprs":
-    return getDefaultTestnetBootNodes()
-  elif input == "devnet_sprs":
-    return getDefaultDevnetBootNodes()
-  return input.split(";")
 
 proc stringToSpr(uri: string): SignedPeerRecord =
   var res: SignedPeerRecord
@@ -103,14 +84,28 @@ proc stringToSpr(uri: string): SignedPeerRecord =
     quit QuitFailure
   res
 
-proc getBootNodes(input: string): seq[SignedPeerRecord] =
-  getBootNodeStrings(input).mapIt(stringToSpr(it))
+proc getBootNodes(networkConfig: ArchivistNetwork, input: string): seq[SignedPeerRecord] =
+  if input == networkDefault:
+    return networkConfig.spr.records.mapIt(stringToSpr(it))
+  return input.split(";").mapIt(stringToSpr(it))
+
+proc getEthProvider(networkConfig: ArchivistNetwork, input: string): string =
+  if input == networkDefault:
+    return networkConfig.rpcs[0]
+  return input
+
+proc getMarketplaceAddress(networkConfig: ArchivistNetwork, input: string): string =
+  if input == networkDefault:
+    return networkConfig.marketplace.contractAddress
+  return input
 
 proc getEnable(input: string): bool =
   input == "1"
 
 proc parseConfig*(): Config =
-  let args = docopt(doc, version = crawlerFullVersion)
+  let
+    args = docopt(doc, version = crawlerFullVersion)
+    networkConfig = getNetworkConfig()
 
   proc get(name: string): string =
     $args[name]
@@ -122,14 +117,14 @@ proc parseConfig*(): Config =
     metricsPort: Port(parseInt(get("--metricsPort"))),
     dataDir: get("--dataDir"),
     discPort: Port(parseInt(get("--discoveryPort"))),
-    bootNodes: getBootNodes(get("--bootNodes")),
+    bootNodes: getBootNodes(networkConfig, get("--bootNodes")),
     dhtEnable: getEnable(get("--dhtEnable")),
     stepDelayMs: parseInt(get("--stepDelay")),
     revisitDelayMins: parseInt(get("--revisitDelay")),
     checkDelayMins: parseInt(get("--checkDelay")),
     expiryDelayMins: parseInt(get("--expiryDelay")),
     marketplaceEnable: getEnable(get("--marketplaceEnable")),
-    ethProvider: get("--ethProvider"),
-    marketplaceAddress: get("--marketplaceAddress"),
+    ethProvider: getEthProvider(networkConfig, get("--ethProvider")),
+    marketplaceAddress: getMarketplaceAddress(networkConfig, get("--marketplaceAddress")),
     requestCheckDelay: parseInt(get("--requestCheckDelay")),
   )
