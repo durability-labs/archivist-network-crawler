@@ -115,7 +115,7 @@ proc getVersion(fullModel: NetworkConfig): string =
   return selected
 
 proc mapToVersion(
-  nodes: seq[ArchivistNetworkTeamNodesEntry], selected: string
+    nodes: seq[ArchivistNetworkTeamNodesEntry], selected: string
 ): seq[TeamNodesCategory] =
   return nodes.mapIt(
     TeamNodesCategory(
@@ -135,7 +135,7 @@ proc mapToVersion(fullModel: NetworkConfig): ArchivistNetwork =
     rpcs: fullModel.rpcs,
     marketplace:
       fullModel.marketplace.filterIt(it.supportedVersions.contains(selected))[0],
-    team: mapToVersion(fullModel.team, selected)
+    team: mapToVersion(fullModel.team, selected),
   )
 
 proc getNetworkConfig*(): ArchivistNetwork =

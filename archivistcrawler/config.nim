@@ -85,7 +85,7 @@ proc stringToSpr(uri: string): SignedPeerRecord =
   res
 
 proc getBootNodes(
-  networkConfig: ArchivistNetwork, input: string
+    networkConfig: ArchivistNetwork, input: string
 ): seq[SignedPeerRecord] =
   if input == networkDefault:
     return networkConfig.spr.records.mapIt(stringToSpr(it))
