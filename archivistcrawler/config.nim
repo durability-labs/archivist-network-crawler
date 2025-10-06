@@ -84,7 +84,9 @@ proc stringToSpr(uri: string): SignedPeerRecord =
     quit QuitFailure
   res
 
-proc getBootNodes(networkConfig: ArchivistNetwork, input: string): seq[SignedPeerRecord] =
+proc getBootNodes(
+  networkConfig: ArchivistNetwork, input: string
+): seq[SignedPeerRecord] =
   if input == networkDefault:
     return networkConfig.spr.records.mapIt(stringToSpr(it))
   return input.split(";").mapIt(stringToSpr(it))
@@ -125,6 +127,7 @@ proc parseConfig*(): Config =
     expiryDelayMins: parseInt(get("--expiryDelay")),
     marketplaceEnable: getEnable(get("--marketplaceEnable")),
     ethProvider: getEthProvider(networkConfig, get("--ethProvider")),
-    marketplaceAddress: getMarketplaceAddress(networkConfig, get("--marketplaceAddress")),
+    marketplaceAddress:
+      getMarketplaceAddress(networkConfig, get("--marketplaceAddress")),
     requestCheckDelay: parseInt(get("--requestCheckDelay")),
   )
