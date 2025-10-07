@@ -20,7 +20,7 @@ Options:
   --metricsPort=<p>                 Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>                   Directory for storing data [default: crawler_data]
   --discoveryPort=<p>               Port used for DHT [default: 8090]
-  --bootNodes=<n>                   Override for bootstrap SPRs. Semi-colon-separated list. [default: network_default]
+  --bootNodes=<n>                   Optional override for bootstrap SPRs. Semi-colon-separated list.
 
   --dhtEnable=<e>                   Set to "1" to enable DHT crawler [default: 1]
   --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 1000]
@@ -29,8 +29,8 @@ Options:
   --expiryDelay=<m>                 Delay in minutes after which unresponsive nodes are discarded [default: 1440] (24h)
 
   --marketplaceEnable=<e>           Set to "1" to enable marketplace metrics [default: 1]
-  --ethProvider=<a>                 Override address including http(s) or ws of the eth provider [default: network_default]
-  --marketplaceAddress=<a>          Override Eth address of Archivist contracts deployment [default: network_default]
+  --ethProvider=<a>                 Optional override address including http(s) or ws of the eth provider
+  --marketplaceAddress=<a>          Optional override Eth address of Archivist contracts deployment
   --requestCheckDelay=<m>           Delay in minutes after which storage contract status is (re)checked [default: 10]
 """
 
@@ -57,8 +57,6 @@ type Config* = ref object
   marketplaceAddress*: string
   requestCheckDelay*: int
 
-const networkDefault = "network_default"
-
 proc `$`*(config: Config): string =
   "Crawler:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
     " metricsAddress=" & $config.metricsAddress & " metricsPort=" & $config.metricsPort &
@@ -84,22 +82,8 @@ proc stringToSpr(uri: string): SignedPeerRecord =
     quit QuitFailure
   res
 
-proc getBootNodes(
-    networkConfig: ArchivistNetwork, input: string
-): seq[SignedPeerRecord] =
-  if input == networkDefault:
-    return networkConfig.spr.records.mapIt(stringToSpr(it))
-  return input.split(";").mapIt(stringToSpr(it))
-
-proc getEthProvider(networkConfig: ArchivistNetwork, input: string): string =
-  if input == networkDefault:
-    return networkConfig.rpcs[0]
-  return input
-
-proc getMarketplaceAddress(networkConfig: ArchivistNetwork, input: string): string =
-  if input == networkDefault:
-    return networkConfig.marketplace.contractAddress
-  return input
+proc toBootNodes(input: seq[string]): seq[SignedPeerRecord] =
+  return input.mapIt(stringToSpr(it))
 
 proc getEnable(input: string): bool =
   input == "1"
@@ -112,6 +96,16 @@ proc parseConfig*(): Config =
   proc get(name: string): string =
     $args[name]
 
+  proc getOrDefault(name: string, default: seq[string]): seq[string] =
+    if args[name]:
+      return get(name).split(";")
+    return default
+
+  proc getOrDefault(name: string, default: string): string =
+    if args[name]:
+      return get(name)
+    return default
+
   return Config(
     logLevel: get("--logLevel"),
     publicIp: get("--publicIp"),
@@ -119,15 +113,15 @@ proc parseConfig*(): Config =
     metricsPort: Port(parseInt(get("--metricsPort"))),
     dataDir: get("--dataDir"),
     discPort: Port(parseInt(get("--discoveryPort"))),
-    bootNodes: getBootNodes(networkConfig, get("--bootNodes")),
+    bootNodes: toBootNodes(getOrDefault("--bootNodes", networkConfig.spr.records)),
     dhtEnable: getEnable(get("--dhtEnable")),
     stepDelayMs: parseInt(get("--stepDelay")),
     revisitDelayMins: parseInt(get("--revisitDelay")),
     checkDelayMins: parseInt(get("--checkDelay")),
     expiryDelayMins: parseInt(get("--expiryDelay")),
     marketplaceEnable: getEnable(get("--marketplaceEnable")),
-    ethProvider: getEthProvider(networkConfig, get("--ethProvider")),
+    ethProvider: getOrDefault("--ethProvider", networkConfig.team.utils.crawlerRpc),
     marketplaceAddress:
-      getMarketplaceAddress(networkConfig, get("--marketplaceAddress")),
+      getOrDefault("--marketplaceAddress", networkConfig.marketplace.contractAddress),
     requestCheckDelay: parseInt(get("--requestCheckDelay")),
   )
