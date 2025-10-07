@@ -4,6 +4,7 @@ import pkg/chronicles
 import pkg/libp2p
 import pkg/archivistdht
 import ./utils/version
+import ./networkConfig
 
 let doc =
   """
@@ -19,7 +20,7 @@ Options:
   --metricsPort=<p>                 Listen HTTP port of the metrics server [default: 8008]
   --dataDir=<dir>                   Directory for storing data [default: crawler_data]
   --discoveryPort=<p>               Port used for DHT [default: 8090]
-  --bootNodes=<n>                   Semi-colon-separated list of Archivist bootstrap SPRs [default: testnet_sprs]
+  --bootNodes=<n>                   Optional override for bootstrap SPRs. Semi-colon-separated list.
 
   --dhtEnable=<e>                   Set to "1" to enable DHT crawler [default: 1]
   --stepDelay=<ms>                  Delay in milliseconds per node visit [default: 1000]
@@ -28,8 +29,8 @@ Options:
   --expiryDelay=<m>                 Delay in minutes after which unresponsive nodes are discarded [default: 1440] (24h)
 
   --marketplaceEnable=<e>           Set to "1" to enable marketplace metrics [default: 1]
-  --ethProvider=<a>                 Address including http(s) or ws of the eth provider
-  --marketplaceAddress=<a>          Eth address of Archivist contracts deployment
+  --ethProvider=<a>                 Optional override address including http(s) or ws of the eth provider
+  --marketplaceAddress=<a>          Optional override Eth address of Archivist contracts deployment
   --requestCheckDelay=<m>           Delay in minutes after which storage contract status is (re)checked [default: 10]
 """
 
@@ -67,28 +68,6 @@ proc `$`*(config: Config): string =
     " ethProvider=" & config.ethProvider & " marketplaceAddress=" &
     config.marketplaceAddress & " requestCheckDelay=" & $config.requestCheckDelay
 
-proc getDefaultTestnetBootNodes(): seq[string] =
-  @[
-    "spr:CiUIAhIhA5mg11LZgFQ4XzIRb1T5xw9muFW1ALNKTijyKhQmvKYXEgIDARpJCicAJQgCEiEDmaDXUtmAVDhfMhFvVPnHD2a4VbUAs0pOKPIqFCa8phcQl-XFxQYaCwoJBE4vqKqRAnU6GgsKCQROL6iqkQJ1OipHMEUCIQDfzVYbN6A_O4i29e_FtDDUo7GJS3bkXRQtoteYbPSFtgIgcc8Kgj2ggVJyK16EY9xi4bY2lpTTeNIRjvslXSRdN5w",
-    "spr:CiUIAhIhAhmlZ1XaN44zPDuORyNJV8I79x2eSXt5-9AirVagKCAIEgIDARpJCicAJQgCEiECGaVnVdo3jjM8O45HI0lXwjv3HZ5Je3n70CKtVqAoIAgQ_OfFxQYaCwoJBAWhGBORAnVEGgsKCQQFoRgTkQJ1RCpHMEUCIQCgqSYPxyic9XmOcQYtJDKNprK_Uokz2UzjVZRnPYpOgQIgQ8m96ukov4XZG-j-XH53_vuoy3GkHuneUZ1Xe0luCxk",
-    "spr:CiUIAhIhAnCcHA-aqMx--nwf8cJyZKJavc-PuYNKKROoW_5Q1JcREgIDARpJCicAJQgCEiECcJwcD5qozH76fB_xwnJkolq9z4-5g0opE6hb_lDUlxEQje7FxQYaCwoJBAXfFdCRAnVOGgsKCQQF3xXQkQJ1TipGMEQCIA22oUekTsDAtsIOyrgtkG702FJPn8Xd-ifEVTUSuu7fAiBv9YyAg9iKuYBhgZKsZBHYfX8l0sXvm80s6U__EGGY-g",
-  ]
-
-
-proc getDefaultDevnetBootNodes(): seq[string] =
-  @[
-    "spr:CiUIAhIhA5mg11LZgFQ4XzIRb1T5xw9muFW1ALNKTijyKhQmvKYXEgIDARpJCicAJQgCEiEDmaDXUtmAVDhfMhFvVPnHD2a4VbUAs0pOKPIqFCa8phcQl-XFxQYaCwoJBE4vqKqRAnU6GgsKCQROL6iqkQJ1OipHMEUCIQDfzVYbN6A_O4i29e_FtDDUo7GJS3bkXRQtoteYbPSFtgIgcc8Kgj2ggVJyK16EY9xi4bY2lpTTeNIRjvslXSRdN5w",
-    "spr:CiUIAhIhAhmlZ1XaN44zPDuORyNJV8I79x2eSXt5-9AirVagKCAIEgIDARpJCicAJQgCEiECGaVnVdo3jjM8O45HI0lXwjv3HZ5Je3n70CKtVqAoIAgQ_OfFxQYaCwoJBAWhGBORAnVEGgsKCQQFoRgTkQJ1RCpHMEUCIQCgqSYPxyic9XmOcQYtJDKNprK_Uokz2UzjVZRnPYpOgQIgQ8m96ukov4XZG-j-XH53_vuoy3GkHuneUZ1Xe0luCxk",
-    "spr:CiUIAhIhAnCcHA-aqMx--nwf8cJyZKJavc-PuYNKKROoW_5Q1JcREgIDARpJCicAJQgCEiECcJwcD5qozH76fB_xwnJkolq9z4-5g0opE6hb_lDUlxEQje7FxQYaCwoJBAXfFdCRAnVOGgsKCQQF3xXQkQJ1TipGMEQCIA22oUekTsDAtsIOyrgtkG702FJPn8Xd-ifEVTUSuu7fAiBv9YyAg9iKuYBhgZKsZBHYfX8l0sXvm80s6U__EGGY-g",
-  ]
-
-proc getBootNodeStrings(input: string): seq[string] =
-  if input == "testnet_sprs":
-    return getDefaultTestnetBootNodes()
-  elif input == "devnet_sprs":
-    return getDefaultDevnetBootNodes()
-  return input.split(";")
-
 proc stringToSpr(uri: string): SignedPeerRecord =
   var res: SignedPeerRecord
   try:
@@ -103,17 +82,29 @@ proc stringToSpr(uri: string): SignedPeerRecord =
     quit QuitFailure
   res
 
-proc getBootNodes(input: string): seq[SignedPeerRecord] =
-  getBootNodeStrings(input).mapIt(stringToSpr(it))
+proc toBootNodes(input: seq[string]): seq[SignedPeerRecord] =
+  return input.mapIt(stringToSpr(it))
 
 proc getEnable(input: string): bool =
   input == "1"
 
 proc parseConfig*(): Config =
-  let args = docopt(doc, version = crawlerFullVersion)
+  let
+    args = docopt(doc, version = crawlerFullVersion)
+    networkConfig = getNetworkConfig()
 
   proc get(name: string): string =
     $args[name]
+
+  proc getOrDefault(name: string, default: seq[string]): seq[string] =
+    if args[name]:
+      return get(name).split(";")
+    return default
+
+  proc getOrDefault(name: string, default: string): string =
+    if args[name]:
+      return get(name)
+    return default
 
   return Config(
     logLevel: get("--logLevel"),
@@ -122,14 +113,15 @@ proc parseConfig*(): Config =
     metricsPort: Port(parseInt(get("--metricsPort"))),
     dataDir: get("--dataDir"),
     discPort: Port(parseInt(get("--discoveryPort"))),
-    bootNodes: getBootNodes(get("--bootNodes")),
+    bootNodes: toBootNodes(getOrDefault("--bootNodes", networkConfig.spr.records)),
     dhtEnable: getEnable(get("--dhtEnable")),
     stepDelayMs: parseInt(get("--stepDelay")),
     revisitDelayMins: parseInt(get("--revisitDelay")),
     checkDelayMins: parseInt(get("--checkDelay")),
     expiryDelayMins: parseInt(get("--expiryDelay")),
     marketplaceEnable: getEnable(get("--marketplaceEnable")),
-    ethProvider: get("--ethProvider"),
-    marketplaceAddress: get("--marketplaceAddress"),
+    ethProvider: getOrDefault("--ethProvider", networkConfig.team.utils.crawlerRpc),
+    marketplaceAddress:
+      getOrDefault("--marketplaceAddress", networkConfig.marketplace.contractAddress),
     requestCheckDelay: parseInt(get("--requestCheckDelay")),
   )

@@ -14,7 +14,7 @@ method start*(
     c: Component
 ): Future[?!void] {.async: (raises: [CancelledError]), base.} =
   # Start is called on all components in an unspecified order.
-  # Is is guaranteed that all components have already successfulled handled 'awake'.
+  # It is guaranteed that all components have already successfulled handled 'awake'.
   # Use this method to begin the work of this component.
   return success()
 

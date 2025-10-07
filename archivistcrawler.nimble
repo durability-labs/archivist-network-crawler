@@ -17,7 +17,8 @@ requires "bearssl >= 0.2.5 & < 0.3.0"
 requires "chronicles >= 0.10.2 & < 0.11.0"
 requires "chronos >= 4.0.3 & < 4.1.0"
 # requires "libp2p >= 1.5.0 & < 2.0.0"
-requires "libp2p#036e110a6080fba1a1662c58cfd8c21f9a548021" # Same as archivist-0.2.0 uses.
+requires "libp2p#036e110a6080fba1a1662c58cfd8c21f9a548021"
+  # Same as archivist-0.2.0 uses.
 requires "https://github.com/archivist-storage/nim-poseidon2#4e2c6e619b2f2859aaa4b2aed2f346ea4d0c67a3"
 
 requires "metrics >= 0.1.0 & < 0.2.0"
