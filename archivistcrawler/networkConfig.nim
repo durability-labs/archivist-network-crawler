@@ -70,10 +70,10 @@ type
     instances* {.serialize.}: seq[ArchivistNetworkTeamNodesVersionsInstancesEntry]
 
 # Connector
-const EnvVar_Network = "ARCHIVIST_NETWORK"
-const EnvVar_Version = "ARCHIVIST_VERSION"
-const EnvVar_ConfigUrl = "ARCHIVIST_CONFIG_URL"
-const EnvVar_ConfigFile = "ARCHIVIST_CONFIG_FILE"
+const EnvVarNetwork = "ARCHIVIST_NETWORK"
+const EnvVarVersion = "ARCHIVIST_VERSION"
+const EnvVarConfigUrl = "ARCHIVIST_CONFIG_URL"
+const EnvVarConfigFile = "ARCHIVIST_CONFIG_FILE"
 
 proc getEnvOrDefault(key: string, default: string): string =
   return getEnv(key, default)
@@ -82,11 +82,11 @@ proc fetchModelFromFile(file: string): string =
   return readFile(file)
 
 proc getFetchUrl(): string =
-  let overrideUrl = getEnvOrDefault(EnvVar_ConfigUrl, "")
+  let overrideUrl = getEnvOrDefault(EnvVarConfigUrl, "")
   if overrideUrl.len > 0:
     return overrideUrl
 
-  let network = getEnvOrDefault(EnvVar_Network, "testnet")
+  let network = getEnvOrDefault(EnvVarNetwork, "testnet")
   return "http://config.archivist.storage/" & network & ".json"
 
 proc fetchModelFromUrl(): string =
@@ -99,7 +99,7 @@ proc fetchModelFromUrl(): string =
     client.close()
 
 proc fetchModelJson(): string =
-  let overrideFile = getEnvOrDefault(EnvVar_ConfigFile, "")
+  let overrideFile = getEnvOrDefault(EnvVarConfigFile, "")
   if overrideFile.len > 0:
     return fetchModelFromFile(overrideFile)
   return fetchModelFromUrl()
@@ -109,7 +109,7 @@ proc fetchModel(): NetworkConfig =
   return tryGet(NetworkConfig.fromJson(str))
 
 proc getVersion(fullModel: NetworkConfig): string =
-  let selected = getEnvOrDefault(EnvVar_Version, "latest")
+  let selected = getEnvOrDefault(EnvVarVersion, "latest")
   if selected == "latest":
     return fullModel.latest
   return selected
