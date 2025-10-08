@@ -8,7 +8,6 @@ METRICSADDRESS=${CRAWLER_METRICSADDRESS:-0.0.0.0}
 METRICSPORT=${CRAWLER_METRICSPORT:-8008}
 DATADIR=${CRAWLER_DATADIR:-crawler_data}
 DISCPORT=${CRAWLER_DISCPORT:-8090}
-BOOTNODES=${CRAWLER_BOOTNODES:-network_default}
 
 DHTENABLE=${CRAWLER_DHTENABLE:-1}
 STEPDELAY=${CRAWLER_STEPDELAY:-1000}
@@ -17,8 +16,6 @@ CHECKDELAY=${CRAWLER_CHECKDELAY:-10}
 EXPIRYDELAY=${CRAWLER_EXPIRYDELAY:-1440}
 
 MARKETPLACEENABLE=${CRAWLER_MARKETPLACEENABLE:-1}
-ETHPROVIDER=${CRAWLER_ETHPROVIDER:-network_default}
-MARKETPLACEADDRESS=${CRAWLER_MARKETPLACEADDRESS:-network_default}
 REQUESTCHECKDELAY=${CRAWLER_REQUESTCHECKDELAY:-10}
 
 # Marketplace address from URL
@@ -41,8 +38,20 @@ if [[ -n "${MARKETPLACE_ADDRESS_FROM_URL}" ]]; then
   done
 fi
 
+# Optional overrides:
+OPTIONALS=" "
+if [[ -n "${CRAWLER_BOOTNODES}" ]]; then
+  OPTIONALS+="--bootNodes=${CRAWLER_BOOTNODES} "
+fi
+if [[ -n "${CRAWLER_ETHPROVIDER}" ]]; then
+  OPTIONALS+="--ethProvider=${CRAWLER_ETHPROVIDER} "
+fi
+if [[ -n "${CRAWLER_MARKETPLACEADDRESS}" ]]; then
+  OPTIONALS+="--marketplaceAddress=${CRAWLER_MARKETPLACEADDRESS} "
+fi
+
 # Update CLI arguments
-set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --bootNodes="${BOOTNODES}" --dhtEnable="${DHTENABLE}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}" --marketplaceEnable="${MARKETPLACEENABLE}" --ethProvider="${ETHPROVIDER}" --marketplaceAddress="${MARKETPLACEADDRESS}" --requestCheckDelay="${REQUESTCHECKDELAY}"
+set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --dhtEnable="${DHTENABLE}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}" --marketplaceEnable="${MARKETPLACEENABLE}" --requestCheckDelay="${REQUESTCHECKDELAY}" ${OPTIONALS}
 
 # Show
 echo -e "\nRun parameters:"
