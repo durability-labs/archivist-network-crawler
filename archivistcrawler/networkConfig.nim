@@ -2,9 +2,13 @@ import std/envvars
 import std/httpclient
 import std/sequtils
 
+import pkg/chronicles
 import pkg/serde/json
 import pkg/questionable
 import pkg/questionable/results
+
+logScope:
+  topics = "networkconfig"
 
 # Endpoint types
 type
@@ -50,6 +54,7 @@ proc getEnvOrDefault(key: string, default: string): string =
   return getEnv(key, default)
 
 proc fetchModelFromFile(file: string): string =
+  trace "Loading model from file", file
   return readFile(file)
 
 proc getFetchUrl(): string =
@@ -65,6 +70,7 @@ proc fetchModelFromUrl(): string =
     url = getFetchUrl()
     client = newHttpClient()
   try:
+    trace "Loading model form URL", url
     return client.getContent(url)
   finally:
     client.close()
@@ -87,6 +93,7 @@ proc getVersion(fullModel: NetworkConfig): string =
 
 proc mapToVersion(fullModel: NetworkConfig): ArchivistNetwork =
   let selected = getVersion(fullModel)
+  trace "Mapping to version", version=selected
   return ArchivistNetwork(
     spr: fullModel.sprs.filterIt(it.supportedVersions.contains(selected))[0],
     marketplace:
