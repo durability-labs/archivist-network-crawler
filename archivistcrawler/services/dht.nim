@@ -137,7 +137,7 @@ proc new(
     bindPort = 0.Port,
     announceAddrs: openArray[MultiAddress],
     bootstrapNodes: openArray[SignedPeerRecord] = [],
-    store: Datastore = SQLiteDatastore.new(Memory).expect("Should not fail!"),
+    store: Datastore = SQLiteDatastore.new(":memory:").expect("Should not fail!"),
 ): Dht =
   var self = Dht(
     state: state, key: key, peerId: PeerId.init(key).expect("Should construct PeerId")

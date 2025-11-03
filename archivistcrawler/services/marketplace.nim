@@ -1,6 +1,5 @@
 import pkg/ethers
 import pkg/questionable
-import pkg/upraises
 import ./marketplace/market
 import ./marketplace/marketplace
 import ../config
@@ -57,7 +56,7 @@ method subscribeToNewRequests*(
 
   proc onRequest(
       id: RequestId, ask: StorageAsk, expiry: uint64
-  ) {.gcsafe, upraises: [].} =
+  ) {.gcsafe, raises: [].} =
     asyncSpawn resultWrapper(Rid(id))
 
   if market =? m.market:

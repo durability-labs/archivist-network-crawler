@@ -1,7 +1,6 @@
 import std/strutils
 import std/strformat
 import pkg/ethers
-import pkg/upraises
 import pkg/questionable
 import ./logutils
 import ./marketplace
@@ -31,15 +30,15 @@ type
   ProofChallenge* = array[32, byte]
   # Event callback signatures:
   OnRequest* =
-    proc(id: RequestId, ask: StorageAsk, expiry: uint64) {.gcsafe, upraises: [].}
-  OnFulfillment* = proc(requestId: RequestId) {.gcsafe, upraises: [].}
-  OnSlotFilled* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, upraises: [].}
-  OnSlotFreed* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, upraises: [].}
+    proc(id: RequestId, ask: StorageAsk, expiry: uint64) {.gcsafe, raises: [].}
+  OnFulfillment* = proc(requestId: RequestId) {.gcsafe, raises: [].}
+  OnSlotFilled* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, raises: [].}
+  OnSlotFreed* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, raises: [].}
   OnSlotReservationsFull* =
-    proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, upraises: [].}
-  OnRequestCancelled* = proc(requestId: RequestId) {.gcsafe, upraises: [].}
-  OnRequestFailed* = proc(requestId: RequestId) {.gcsafe, upraises: [].}
-  OnProofSubmitted* = proc(id: SlotId) {.gcsafe, upraises: [].}
+    proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, raises: [].}
+  OnRequestCancelled* = proc(requestId: RequestId) {.gcsafe, raises: [].}
+  OnRequestFailed* = proc(requestId: RequestId) {.gcsafe, raises: [].}
+  OnProofSubmitted* = proc(id: SlotId) {.gcsafe, raises: [].}
 
   # Marketplace events
   MarketplaceEvent* = Event
@@ -369,7 +368,7 @@ proc canReserveSlot*(
 proc subscribeRequests*(
     market: OnChainMarket, callback: OnRequest
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!StorageRequested) {.upraises: [].} =
+  proc onEvent(eventResult: ?!StorageRequested) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in Request subscription", msg = eventErr.msg
       return
@@ -383,7 +382,7 @@ proc subscribeRequests*(
 proc subscribeSlotFilled*(
     market: OnChainMarket, callback: OnSlotFilled
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!SlotFilled) {.upraises: [].} =
+  proc onEvent(eventResult: ?!SlotFilled) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in SlotFilled subscription", msg = eventErr.msg
       return
@@ -410,7 +409,7 @@ proc subscribeSlotFilled*(
 proc subscribeSlotFreed*(
     market: OnChainMarket, callback: OnSlotFreed
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!SlotFreed) {.upraises: [].} =
+  proc onEvent(eventResult: ?!SlotFreed) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in SlotFreed subscription", msg = eventErr.msg
       return
@@ -424,7 +423,7 @@ proc subscribeSlotFreed*(
 proc subscribeSlotReservationsFull*(
     market: OnChainMarket, callback: OnSlotReservationsFull
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!SlotReservationsFull) {.upraises: [].} =
+  proc onEvent(eventResult: ?!SlotReservationsFull) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in SlotReservationsFull subscription",
         msg = eventErr.msg
@@ -439,7 +438,7 @@ proc subscribeSlotReservationsFull*(
 proc subscribeFulfillment(
     market: OnChainMarket, callback: OnFulfillment
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestFulfilled) {.upraises: [].} =
+  proc onEvent(eventResult: ?!RequestFulfilled) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in RequestFulfillment subscription", msg = eventErr.msg
       return
@@ -453,7 +452,7 @@ proc subscribeFulfillment(
 proc subscribeFulfillment(
     market: OnChainMarket, requestId: RequestId, callback: OnFulfillment
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestFulfilled) {.upraises: [].} =
+  proc onEvent(eventResult: ?!RequestFulfilled) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in RequestFulfillment subscription", msg = eventErr.msg
       return
@@ -468,7 +467,7 @@ proc subscribeFulfillment(
 proc subscribeRequestCancelled*(
     market: OnChainMarket, callback: OnRequestCancelled
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestCancelled) {.upraises: [].} =
+  proc onEvent(eventResult: ?!RequestCancelled) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in RequestCancelled subscription", msg = eventErr.msg
       return
@@ -482,7 +481,7 @@ proc subscribeRequestCancelled*(
 proc subscribeRequestCancelled*(
     market: OnChainMarket, requestId: RequestId, callback: OnRequestCancelled
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestCancelled) {.upraises: [].} =
+  proc onEvent(eventResult: ?!RequestCancelled) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in RequestCancelled subscription", msg = eventErr.msg
       return
@@ -497,7 +496,7 @@ proc subscribeRequestCancelled*(
 proc subscribeRequestFailed*(
     market: OnChainMarket, callback: OnRequestFailed
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestFailed) {.upraises: [].} =
+  proc onEvent(eventResult: ?!RequestFailed) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in RequestFailed subscription", msg = eventErr.msg
       return
@@ -511,7 +510,7 @@ proc subscribeRequestFailed*(
 proc subscribeRequestFailed*(
     market: OnChainMarket, requestId: RequestId, callback: OnRequestFailed
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestFailed) {.upraises: [].} =
+  proc onEvent(eventResult: ?!RequestFailed) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in RequestFailed subscription", msg = eventErr.msg
       return
@@ -526,7 +525,7 @@ proc subscribeRequestFailed*(
 proc subscribeProofSubmission*(
     market: OnChainMarket, callback: OnProofSubmitted
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!ProofSubmitted) {.upraises: [].} =
+  proc onEvent(eventResult: ?!ProofSubmitted) {.raises: [].} =
     without event =? eventResult, eventErr:
       error "There was an error in ProofSubmitted subscription", msg = eventErr.msg
       return

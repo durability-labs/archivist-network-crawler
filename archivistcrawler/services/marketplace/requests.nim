@@ -82,7 +82,7 @@ func toArray*(id: RequestId | SlotId | Nonce): array[32, byte] =
   array[32, byte](id)
 
 proc `$`*(id: RequestId | SlotId | Nonce): string =
-  id.toArray.toHex
+  byteutils.toHex(id.toArray)
 
 proc fromHex*(T: type RequestId, hex: string): T =
   T array[32, byte].fromHex(hex)

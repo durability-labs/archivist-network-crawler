@@ -198,33 +198,33 @@ template formatIt*(format: LogFormat, T: typedesc, body: untyped) =
         return jObj
       json.`%`(body)
 
-    proc setProperty*(r: var JsonRecord, key: string, res: ?!T) =
-      var it {.inject, used.}: T
-      setProperty(r, key, res.formatJsonResult)
+    # proc setProperty*(r: var JsonRecord, key: string, res: ?!T) =
+    #   var it {.inject, used.}: T
+    #   setProperty(r, key, res.formatJsonResult)
 
-    proc setProperty*(r: var JsonRecord, key: string, opt: ?T) =
-      var it {.inject, used.}: T
-      let v = opt.formatJsonOption
-      setProperty(r, key, v)
+    # proc setProperty*(r: var JsonRecord, key: string, opt: ?T) =
+    #   var it {.inject, used.}: T
+    #   let v = opt.formatJsonOption
+    #   setProperty(r, key, v)
 
-    proc setProperty*(r: var JsonRecord, key: string, opts: seq[?T]) =
-      var it {.inject, used.}: T
-      let v = opts.map(opt => opt.formatJsonOption)
-      setProperty(r, key, json.`%`(v))
+    # proc setProperty*(r: var JsonRecord, key: string, opts: seq[?T]) =
+    #   var it {.inject, used.}: T
+    #   let v = opts.map(opt => opt.formatJsonOption)
+    #   setProperty(r, key, json.`%`(v))
 
-    proc setProperty*(
-        r: var JsonRecord, key: string, val: seq[T]
-    ) {.raises: [ValueError, IOError].} =
-      var it {.inject, used.}: T
-      let v = val.map(it => body)
-      setProperty(r, key, json.`%`(v))
+    # proc setProperty*(
+    #     r: var JsonRecord, key: string, val: seq[T]
+    # ) {.raises: [ValueError, IOError].} =
+    #   var it {.inject, used.}: T
+    #   let v = val.map(it => body)
+    #   setProperty(r, key, json.`%`(v))
 
-    proc setProperty*(
-        r: var JsonRecord, key: string, val: T
-    ) {.raises: [ValueError, IOError].} =
-      var it {.inject, used.}: T = val
-      let v = body
-      setProperty(r, key, json.`%`(v))
+    # proc setProperty*(
+    #     r: var JsonRecord, key: string, val: T
+    # ) {.raises: [ValueError, IOError].} =
+    #   var it {.inject, used.}: T = val
+    #   let v = body
+    #   setProperty(r, key, json.`%`(v))
 
   elif format == LogFormat.textLines:
     proc formatTextLineOption*(val: ?T): string =
@@ -238,33 +238,33 @@ template formatIt*(format: LogFormat, T: typedesc, body: untyped) =
         return "Error: " & error.msg
       $(body)
 
-    proc setProperty*(r: var TextLineRecord, key: string, res: ?!T) =
-      var it {.inject, used.}: T
-      setProperty(r, key, res.formatTextLineResult)
+    # proc setProperty*(r: var TextLineRecord, key: string, res: ?!T) =
+    #   var it {.inject, used.}: T
+    #   setProperty(r, key, res.formatTextLineResult)
 
-    proc setProperty*(r: var TextLineRecord, key: string, opt: ?T) =
-      var it {.inject, used.}: T
-      let v = opt.formatTextLineOption
-      setProperty(r, key, v)
+    # proc setProperty*(r: var TextLineRecord, key: string, opt: ?T) =
+    #   var it {.inject, used.}: T
+    #   let v = opt.formatTextLineOption
+    #   setProperty(r, key, v)
 
-    proc setProperty*(r: var TextLineRecord, key: string, opts: seq[?T]) =
-      var it {.inject, used.}: T
-      let v = opts.map(opt => opt.formatTextLineOption)
-      setProperty(r, key, v.formatTextLineSeq)
+    # proc setProperty*(r: var TextLineRecord, key: string, opts: seq[?T]) =
+    #   var it {.inject, used.}: T
+    #   let v = opts.map(opt => opt.formatTextLineOption)
+    #   setProperty(r, key, v.formatTextLineSeq)
 
-    proc setProperty*(
-        r: var TextLineRecord, key: string, val: seq[T]
-    ) {.raises: [ValueError, IOError].} =
-      var it {.inject, used.}: T
-      let v = val.map(it => body)
-      setProperty(r, key, v.formatTextLineSeq)
+    # proc setProperty*(
+    #     r: var TextLineRecord, key: string, val: seq[T]
+    # ) {.raises: [ValueError, IOError].} =
+    #   var it {.inject, used.}: T
+    #   let v = val.map(it => body)
+    #   setProperty(r, key, v.formatTextLineSeq)
 
-    proc setProperty*(
-        r: var TextLineRecord, key: string, val: T
-    ) {.raises: [ValueError, IOError].} =
-      var it {.inject, used.}: T = val
-      let v = body
-      setProperty(r, key, v)
+    # proc setProperty*(
+    #     r: var TextLineRecord, key: string, val: T
+    # ) {.raises: [ValueError, IOError].} =
+    #   var it {.inject, used.}: T = val
+    #   let v = body
+    #   setProperty(r, key, v)
 
 template formatIt*(T: type, body: untyped) {.dirty.} =
   formatIt(LogFormat.textLines, T):

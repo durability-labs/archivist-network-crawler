@@ -8,3 +8,4 @@ vendor/*
 crawler_data
 .update.timestamp
 build/nimcache
+nimble.develop
