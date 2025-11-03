@@ -45,11 +45,23 @@ suite "ChainMetrics":
       state.delays.len == 1
       state.delays[0] == state.config.requestCheckDelay.minutes
 
-  test "onStep removes requests from request store when info can't be fetched":
+  test "onStep does not remove requests from request store when info can't be fetched":
     let rid = genRid()
     store.iterateEntries.add(RequestEntry(id: rid))
 
     marketplace.requestInfoReturns = none(RequestInfo)
+
+    await onStep()
+
+    check:
+      marketplace.requestInfoRid == rid
+      store.removeRid != rid
+
+  test "onStep removes requests from request store when it's finished":
+    let rid = genRid()
+    store.iterateEntries.add(RequestEntry(id: rid))
+
+    marketplace.requestInfoReturns = some(RequestInfo(pending: false, finished: true))
 
     await onStep()
 
@@ -76,7 +88,7 @@ suite "ChainMetrics":
     store.iterateEntries.add(RequestEntry(id: rid1))
     store.iterateEntries.add(RequestEntry(id: rid2))
 
-    marketplace.requestInfoReturns = some(RequestInfo(pending: true))
+    marketplace.requestInfoReturns = some(RequestInfo(pending: true, finished: false))
 
     await onStep()
 

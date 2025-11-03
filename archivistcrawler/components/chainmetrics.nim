@@ -39,13 +39,15 @@ proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
         trace "request is pending", id = $entry.id
         inc update.numPending
       else:
-        trace "request is running", id = $entry.id
-        inc update.numRequests
-        update.numSlots += info.slots.int
-        update.totalSize += (info.slots * info.slotSize).int64
-        update.totalPrice += info.pricePerBytePerSecond
-    else:
-      ?await c.store.remove(entry.id)
+        if info.finished:
+          trace "request has finished", id = $entry.id
+          ?await c.store.remove(entry.id)
+        else:
+          trace "request is running", id = $entry.id
+          inc update.numRequests
+          update.numSlots += info.slots.int
+          update.totalSize += (info.slots * info.slotSize).int64
+          update.totalPrice += info.pricePerBytePerSecond
     return success()
 
   ?await c.store.iterateAll(onRequest)
