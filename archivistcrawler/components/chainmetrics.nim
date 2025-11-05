@@ -33,6 +33,8 @@ proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
   )
 
   proc onRequest(entry: RequestEntry): Future[?!void] {.async: (raises: []).} =
+    inc update.numRequests
+
     let response = await c.marketplace.getRequestInfo(entry.id)
     if info =? response:
       if info.pending:
@@ -44,7 +46,6 @@ proc collectUpdate(c: ChainMetrics): Future[?!Update] {.async: (raises: []).} =
           ?await c.store.remove(entry.id)
         else:
           trace "request is running", id = $entry.id
-          inc update.numRequests
           update.numSlots += info.slots.int
           update.totalSize += (info.slots * info.slotSize).int64
           update.totalPrice += info.pricePerBytePerSecond
