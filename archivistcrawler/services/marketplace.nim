@@ -96,6 +96,7 @@ method getRequestInfo*(
     m: MarketplaceService, rid: Rid
 ): Future[?RequestInfo] {.async: (raises: []), base.} =
   # If the request id exists and is running, fetch the request object and return the info object.
+  # If the request is not found but the call to look it up was successful, return it as finished.
   # otherwise, return none.
   if market =? m.market:
     try:
@@ -107,6 +108,10 @@ method getRequestInfo*(
           return await market.fetchRequestInfo(rid)
         else:
           return some(RequestInfo(pending: false, finished: true))
+      else:
+        # Received an "Marketplace_UnknownRequest" so this one is finished
+        # We don't want to track it any more.
+        return some(RequestInfo(pending: false, finished: true))
     except CatchableError as exc:
       trace "Failed to get request state", err = exc.msg
     return none(RequestInfo)
