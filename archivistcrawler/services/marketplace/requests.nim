@@ -14,20 +14,35 @@ import ./logutils
 export contractabi
 
 type
+  TokensPerSecond* = object
+    value: StUint[96]
+
+  Tokens* = object
+    value: StUint[128]
+
+  StorageTimestamp* = object
+    value: StUint[40]
+
+  StorageDuration* = object
+    value: StUint[40]
+
+  ProofPeriod* = object
+    value: StUint[40]
+
   StorageRequest* = object
     client* {.serialize.}: Address
     ask* {.serialize.}: StorageAsk
     content* {.serialize.}: StorageContent
-    expiry* {.serialize.}: uint64
+    expiry* {.serialize.}: StorageDuration
     nonce*: Nonce
 
   StorageAsk* = object
     proofProbability* {.serialize.}: UInt256
-    pricePerBytePerSecond* {.serialize.}: UInt256
-    collateralPerByte* {.serialize.}: UInt256
+    pricePerBytePerSecond* {.serialize.}: TokensPerSecond
+    collateralPerByte* {.serialize.}: Tokens
     slots* {.serialize.}: uint64
     slotSize* {.serialize.}: uint64
-    duration* {.serialize.}: uint64
+    duration* {.serialize.}: StorageDuration
     maxSlotLoss* {.serialize.}: uint64
 
   StorageContent* = object
@@ -53,7 +68,6 @@ type
     Filled
     Finished
     Failed
-    Paid
     Cancelled
     Repair
 
@@ -136,6 +150,260 @@ func fromTuple(_: type StorageAsk, tupl: tuple): StorageAsk =
 func fromTuple(_: type StorageContent, tupl: tuple): StorageContent =
   StorageContent(cid: tupl[0], merkleRoot: tupl[1])
 
+func u40*(duration: StorageDuration): StUint[40] =
+  duration.value
+
+func u40*(duration: StorageTimestamp): StUint[40] =
+  duration.value
+
+func u40*(period: ProofPeriod): StUint[40] =
+  period.value
+
+func u64*(duration: StorageDuration): uint64 =
+  duration.value.truncate(uint64)
+
+func u64*(timestamp: StorageTimestamp): uint64 =
+  timestamp.value.truncate(uint64)
+
+func u64*(period: ProofPeriod): uint64 =
+  period.value.truncate(uint64)
+
+func u256*(timestamp: StorageTimestamp): UInt256 =
+  timestamp.value.stuint(256)
+
+func u256*(duration: StorageDuration): UInt256 =
+  duration.value.stuint(256)
+
+func `'StorageDuration`*(value: static string): StorageDuration =
+  const parsed = parse(value, StUint[40])
+  StorageDuration(value: parsed)
+
+func `'StorageTimestamp`*(value: static string): StorageTimestamp =
+  const parsed = parse(value, StUint[40])
+  StorageTimestamp(value: parsed)
+
+func `'ProofPeriod`*(value: static string): ProofPeriod =
+  const parsed = parse(value, StUint[40])
+  ProofPeriod(value: parsed)
+
+func init*(_: type StorageDuration, value: StUint[40]): StorageDuration =
+  StorageDuration(value: value)
+
+func init*(_: type StorageDuration, value: uint32 | uint16 | uint8): StorageDuration =
+  StorageDuration.init(value.stuint(40))
+
+func init*(_: type StorageTimestamp, value: StUint[40]): StorageTimestamp =
+  StorageTimestamp(value: value)
+
+func init*(_: type StorageTimestamp, value: uint32 | uint16 | uint8): StorageTimestamp =
+  StorageTimestamp.init(value.stuint(40))
+
+func init*(_: type ProofPeriod, value: StUint[40]): ProofPeriod =
+  ProofPeriod(value: value)
+
+func `*`*(a: StorageDuration, b: uint32 | uint16 | uint8): StorageDuration =
+  StorageDuration.init(a.value * b.stuint(40))
+
+func `+`*(a: StorageTimestamp, b: StorageDuration): StorageTimestamp =
+  StorageTimestamp(value: a.value + b.value)
+
+func `+`*(a: StorageTimestamp, b: uint32 | uint16 | uint8): StorageTimestamp =
+  StorageTimestamp(value: a.value + b.stuint(40))
+
+func `+`*(a: StorageDuration, b: StorageDuration): StorageDuration =
+  StorageDuration(value: a.value + b.value)
+
+func `+`*(a: StorageDuration, b: uint32 | uint16 | uint8): StorageDuration =
+  StorageDuration(value: a.value + b.stuint(40))
+
+func `+`*(a: ProofPeriod, b: uint32 | uint16 | uint8): ProofPeriod =
+  ProofPeriod(value: a.value + b.stuint(40))
+
+func `-`*(a: StorageTimestamp, b: uint32 | uint16 | uint8): StorageTimestamp =
+  StorageTimestamp(value: a.value - b.stuint(40))
+
+func `-`*(a: StorageDuration, b: StorageDuration): StorageDuration =
+  StorageDuration(value: a.value - b.value)
+
+func `-`*(a: StorageDuration, b: uint32 | uint16 | uint8): StorageDuration =
+  StorageDuration(value: a.value - b.stuint(40))
+
+func `-`*(a: ProofPeriod, b: uint32 | uint16 | uint8): ProofPeriod =
+  ProofPeriod(value: a.value - b.stuint(40))
+
+func `+=`*(a: var StorageTimestamp, b: StorageDuration): StorageTimestamp =
+  a.value += b.value
+
+func `+=`*[T: StorageDuration | StorageTimestamp](a: var T, b: T) =
+  a.value += b.value
+
+func `-=`*[T: StorageDuration | StorageTimestamp](a: var T, b: T) =
+  a.value -= b.value
+
+func `<`*(a, b: StorageDuration | StorageTimestamp | ProofPeriod): bool =
+  a.value < b.value
+
+func `>`*(a, b: StorageDuration | StorageTimestamp): bool =
+  a.value > b.value
+
+func `<=`*(a, b: StorageDuration | StorageTimestamp): bool =
+  a.value <= b.value
+
+func `>=`*(a, b: StorageDuration | StorageTimestamp): bool =
+  a.value >= b.value
+
+func until*(earlier, later: StorageTimestamp): StorageDuration =
+  doAssert earlier <= later
+  StorageDuration.init(later.u40 - earlier.u40)
+
+func solidityType*(_: type StorageDuration): string =
+  "uint40"
+
+func solidityType*(_: type StorageTimestamp): string =
+  "uint40"
+
+func solidityType*(_: type ProofPeriod): string =
+  "uint40"
+
+func encode*(encoder: var AbiEncoder, timestamp: StorageDuration) =
+  encoder.write(timestamp.value)
+
+func encode*(encoder: var AbiEncoder, timestamp: StorageTimestamp) =
+  encoder.write(timestamp.value)
+
+func encode*(encoder: var AbiEncoder, period: ProofPeriod) =
+  encoder.write(period.value)
+
+func decode*(decoder: var AbiDecoder, T: type StorageDuration): ?!T =
+  let value = ?decoder.read(T.value)
+  success T(value: value)
+
+func decode*(decoder: var AbiDecoder, T: type StorageTimestamp): ?!T =
+  let value = ?decoder.read(T.value)
+  success T(value: value)
+
+func decode*(decoder: var AbiDecoder, T: type ProofPeriod): ?!T =
+  let value = ?decoder.read(T.value)
+  success T(value: value)
+
+func `%`*(value: StorageDuration | StorageTimestamp | ProofPeriod): JsonNode =
+  %($value.value)
+
+func fromJson*(_: type StorageDuration, json: JsonNode): ?!StorageDuration =
+  success StorageDuration(value: ?StUint[40].fromJson(json))
+
+func fromJson*(_: type StorageTimestamp, json: JsonNode): ?!StorageTimestamp =
+  success StorageTimestamp(value: ?StUint[40].fromJson(json))
+
+func fromJson*(_: type ProofPeriod, json: JsonNode): ?!ProofPeriod =
+  success ProofPeriod(value: ?StUint[40].fromJson(json))
+
+func u256*(tokensPerSecond: TokensPerSecond): UInt256 =
+  tokensPerSecond.value.stuint(256)
+
+func u256*(tokens: Tokens): UInt256 =
+  tokens.value.stuint(256)
+
+func `'TokensPerSecond`*(value: static string): TokensPerSecond =
+  const parsed = parse(value, StUint[96])
+  TokensPerSecond(value: parsed)
+
+func `'Tokens`*(value: static string): Tokens =
+  const parsed = parse(value, UInt128)
+  Tokens(value: parsed)
+
+func init*(_: type TokensPerSecond, value: StUint[96]): TokensPerSecond =
+  TokensPerSecond(value: value)
+
+func init*(_: type TokensPerSecond, value: SomeUnsignedInt): TokensPerSecond =
+  TokensPerSecond.init(value.stuint(96))
+
+func init*(_: type Tokens, value: UInt128): Tokens =
+  Tokens(value: value)
+
+func init*(_: type Tokens, value: SomeUnsignedInt): Tokens =
+  Tokens.init(value.stuint(128))
+
+func `*`*(a: TokensPerSecond, b: SomeUnsignedInt): TokensPerSecond =
+  TokensPerSecond(value: a.value * b.stuint(96))
+
+func `*`*(a: TokensPerSecond, b: StorageDuration): Tokens =
+  Tokens(value: a.value.stuint(128) * b.u40.stuint(128))
+
+func `*`*(a: Tokens, b: SomeUnsignedInt): Tokens =
+  Tokens(value: a.value * b.stuint(128))
+
+func `div`*(a: Tokens, b: SomeUnsignedInt): Tokens =
+  Tokens(value: a.value div b.stuint(128))
+
+func `+`*(a, b: Tokens): Tokens =
+  Tokens(value: a.value + b.value)
+
+func `+`*(a: Tokens, b: SomeUnsignedInt): Tokens =
+  Tokens(value: a.value + b.u128)
+
+func `+`*(a, b: TokensPerSecond): TokensPerSecond =
+  TokensPerSecond(value: a.value + b.value)
+
+func `+`*(a: TokensPerSecond, b: SomeUnsignedInt): TokensPerSecond =
+  TokensPerSecond(value: a.value + b.stuint(96))
+
+func `-`*(a, b: Tokens): Tokens =
+  Tokens(value: a.value - b.value)
+
+func `+=`*[T: Tokens | TokensPerSecond](a: var T, b: T) =
+  a.value += b.value
+
+func `-=`*[T: Tokens | TokensPerSecond](a: var T, b: T) =
+  a.value -= b.value
+
+func `<`*(a, b: Tokens | TokensPerSecond): bool =
+  a.value < b.value
+
+func `>`*(a, b: Tokens | TokensPerSecond): bool =
+  a.value > b.value
+
+func `<=`*(a, b: Tokens | TokensPerSecond): bool =
+  a.value <= b.value
+
+func `>=`*(a, b: Tokens | TokensPerSecond): bool =
+  a.value >= b.value
+
+func solidityType*(_: type TokensPerSecond): string =
+  "uint96"
+
+func solidityType*(_: type Tokens): string =
+  "uint128"
+
+func encode*(encoder: var AbiEncoder, tokensPerSecond: TokensPerSecond) =
+  encoder.write(tokensPerSecond.value)
+
+func encode*(encoder: var AbiEncoder, tokens: Tokens) =
+  encoder.write(tokens.value)
+
+func decode*(decoder: var AbiDecoder, T: type TokensPerSecond): ?!T =
+  let value = ?decoder.read(T.value)
+  success T(value: value)
+
+func decode*(decoder: var AbiDecoder, T: type Tokens): ?!T =
+  let value = ?decoder.read(T.value)
+  success T(value: value)
+
+func `%`*(value: TokensPerSecond | Tokens): JsonNode =
+  %($value.value)
+
+func fromJson*(_: type TokensPerSecond, json: JsonNode): ?!TokensPerSecond =
+  success TokensPerSecond(value: ?StUint[96].fromJson(json))
+
+func fromJson*(_: type Tokens, json: JsonNode): ?!Tokens =
+  success Tokens(value: ?UInt128.fromJson(json))
+
+func solidityType*(_: type StUint[40]): string =
+  "uint40"
+
+func solidityType*(_: type StUint[96]): string =
+  "uint96"
+
 func solidityType*(_: type Cid): string =
   solidityType(seq[byte])
 
@@ -201,20 +469,20 @@ func slotId*(request: StorageRequest, slotIndex: uint64): SlotId =
 func id*(slot: Slot): SlotId =
   slotId(slot.request, slot.slotIndex)
 
-func pricePerSlotPerSecond*(ask: StorageAsk): UInt256 =
-  ask.pricePerBytePerSecond * ask.slotSize.u256
+func pricePerSlotPerSecond*(ask: StorageAsk): TokensPerSecond =
+  ask.pricePerBytePerSecond * ask.slotSize
 
-func pricePerSlot*(ask: StorageAsk): UInt256 =
-  ask.duration.u256 * ask.pricePerSlotPerSecond
+func pricePerSlot*(ask: StorageAsk): Tokens =
+  ask.pricePerSlotPerSecond * ask.duration
 
-func totalPrice*(ask: StorageAsk): UInt256 =
-  ask.slots.u256 * ask.pricePerSlot
+func totalPrice*(ask: StorageAsk): Tokens =
+  ask.pricePerSlot * ask.slots
 
-func totalPrice*(request: StorageRequest): UInt256 =
+func totalPrice*(request: StorageRequest): Tokens =
   request.ask.totalPrice
 
-func collateralPerSlot*(ask: StorageAsk): UInt256 =
-  ask.collateralPerByte * ask.slotSize.u256
+func collateralPerSlot*(ask: StorageAsk): Tokens =
+  ask.collateralPerByte * ask.slotSize
 
 func size*(ask: StorageAsk): uint64 =
   ask.slots * ask.slotSize

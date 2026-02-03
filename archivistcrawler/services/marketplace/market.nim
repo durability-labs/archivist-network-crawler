@@ -9,16 +9,17 @@ import ./proofs
 import ./provider
 import ./config
 import ./periods
+import ./requests
 
 # Copy of nim-archivist market.nim
 # Edited to remove signing, reward address, etc
 
 logScope:
-  topics = "marketplace onchain market"
+  topics = "marketplace onchain"
 
 type
   OnChainMarket* = ref object of RootObj
-    contract: Marketplace
+    contract: MarketplaceContract
     configuration: ?MarketplaceConfig
 
   Subscription = ref object of RootObj
@@ -30,23 +31,23 @@ type
 
   ProofChallenge* = array[32, byte]
   # Event callback signatures:
-  OnRequest* =
-    proc(id: RequestId, ask: StorageAsk, expiry: uint64) {.gcsafe, upraises: [].}
-  OnFulfillment* = proc(requestId: RequestId) {.gcsafe, upraises: [].}
-  OnSlotFilled* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, upraises: [].}
-  OnSlotFreed* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, upraises: [].}
+  OnRequest* = proc(id: RequestId, ask: StorageAsk, expiry: StorageTimestamp) {.
+    gcsafe, raises: []
+  .}
+  OnFulfillment* = proc(requestId: RequestId) {.gcsafe, raises: [].}
+  OnSlotFilled* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, raises: [].}
+  OnSlotFreed* = proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, raises: [].}
   OnSlotReservationsFull* =
-    proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, upraises: [].}
-  OnRequestCancelled* = proc(requestId: RequestId) {.gcsafe, upraises: [].}
-  OnRequestFailed* = proc(requestId: RequestId) {.gcsafe, upraises: [].}
-  OnProofSubmitted* = proc(id: SlotId) {.gcsafe, upraises: [].}
+    proc(requestId: RequestId, slotIndex: uint64) {.gcsafe, raises: [].}
+  OnRequestFailed* = proc(requestId: RequestId) {.gcsafe, raises: [].}
+  OnProofSubmitted* = proc(id: SlotId) {.gcsafe, raises: [].}
 
   # Marketplace events
   MarketplaceEvent* = Event
   StorageRequested* = object of MarketplaceEvent
     requestId*: RequestId
     ask*: StorageAsk
-    expiry*: uint64
+    expiry*: StorageTimestamp
 
   SlotFilled* = object of MarketplaceEvent
     requestId* {.indexed.}: RequestId
@@ -63,16 +64,13 @@ type
   RequestFulfilled* = object of MarketplaceEvent
     requestId* {.indexed.}: RequestId
 
-  RequestCancelled* = object of MarketplaceEvent
-    requestId* {.indexed.}: RequestId
-
   RequestFailed* = object of MarketplaceEvent
     requestId* {.indexed.}: RequestId
 
   ProofSubmitted* = object of MarketplaceEvent
     id*: SlotId
 
-func new*(_: type OnChainMarket, contract: Marketplace): OnChainMarket =
+func new*(_: type OnChainMarket, contract: MarketplaceContract): OnChainMarket =
   OnChainMarket(contract: contract)
 
 proc raiseMarketError(message: string) {.raises: [MarketError].} =
@@ -123,82 +121,11 @@ proc config(
 
   return resolvedConfig
 
-proc approveFunds(
-    market: OnChainMarket, amount: UInt256
-) {.async: (raises: [CancelledError]).} =
-  raiseAssert("Not available: approveFunds")
-
 proc getZkeyHash*(
     market: OnChainMarket
 ): Future[?string] {.async: (raises: [CancelledError, MarketError]).} =
   let config = await market.config()
   return some config.proofs.zkeyHash
-
-proc periodicity*(
-    market: OnChainMarket
-): Future[Periodicity] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    let config = await market.config()
-    let period = config.proofs.period
-    return Periodicity(seconds: period)
-
-proc proofTimeout*(
-    market: OnChainMarket
-): Future[uint64] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    let config = await market.config()
-    return config.proofs.timeout
-
-proc repairRewardPercentage*(
-    market: OnChainMarket
-): Future[uint8] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    let config = await market.config()
-    return config.collateral.repairRewardPercentage
-
-proc requestDurationLimit*(
-    market: OnChainMarket
-): Future[uint64] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    let config = await market.config()
-    return config.requestDurationLimit
-
-proc proofDowntime*(
-    market: OnChainMarket
-): Future[uint8] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    let config = await market.config()
-    return config.proofs.downtime
-
-proc getPointer*(
-    market: OnChainMarket, slotId: SlotId
-): Future[uint8] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    let overrides = CallOverrides(blockTag: some BlockTag.pending)
-    return await market.contract.getPointer(slotId, overrides)
-
-proc myRequests*(
-    market: OnChainMarket
-): Future[seq[RequestId]] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    return await market.contract.myRequests
-
-proc mySlots*(
-    market: OnChainMarket
-): Future[seq[SlotId]] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    let slots = await market.contract.mySlots()
-    debug "Fetched my slots", numSlots = len(slots)
-
-    return slots
-
-proc requestStorage(
-    market: OnChainMarket, request: StorageRequest
-) {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    debug "Requesting storage"
-    await market.approveFunds(request.totalPrice())
-    discard await market.contract.requestStorage(request).confirm(1)
 
 proc getRequest*(
     market: OnChainMarket, id: RequestId
@@ -229,17 +156,17 @@ proc slotState*(
     let overrides = CallOverrides(blockTag: some BlockTag.pending)
     return await market.contract.slotState(slotId, overrides)
 
-proc getRequestEnd*(
-    market: OnChainMarket, id: RequestId
-): Future[uint64] {.async: (raises: [CancelledError, MarketError]).} =
+method getRequestEnd*(
+    marketplace: OnChainMarket, id: RequestId
+): Future[StorageTimestamp] {.async.} =
   convertEthersError:
-    return (await market.contract.requestEnd(id)).uint64
+    return await marketplace.contract.requestEnd(id)
 
-proc requestExpiresAt*(
-    market: OnChainMarket, id: RequestId
-): Future[uint64] {.async: (raises: [CancelledError, MarketError]).} =
+method requestExpiresAt*(
+    marketplace: OnChainMarket, id: RequestId
+): Future[StorageTimestamp] {.async.} =
   convertEthersError:
-    return (await market.contract.requestExpiry(id)).uint64
+    return await marketplace.contract.requestExpiry(id)
 
 proc getHost(
     market: OnChainMarket, requestId: RequestId, slotIndex: uint64
@@ -252,11 +179,11 @@ proc getHost(
     else:
       return none Address
 
-proc currentCollateral*(
-    market: OnChainMarket, slotId: SlotId
-): Future[UInt256] {.async: (raises: [CancelledError, MarketError]).} =
+method currentCollateral*(
+    marketplace: OnChainMarket, slotId: SlotId
+): Future[Tokens] {.async: (raises: [MarketError, CancelledError]).} =
   convertEthersError:
-    return await market.contract.currentCollateral(slotId)
+    return await marketplace.contract.currentCollateral(slotId)
 
 proc getActiveSlot*(
     market: OnChainMarket, slotId: SlotId
@@ -266,23 +193,6 @@ proc getActiveSlot*(
       return some await market.contract.getActiveSlot(slotId)
     except Marketplace_SlotIsFree:
       return none Slot
-
-proc fillSlot(
-    market: OnChainMarket,
-    requestId: RequestId,
-    slotIndex: uint64,
-    proof: Groth16Proof,
-    collateral: UInt256,
-) {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    logScope:
-      requestId
-      slotIndex
-
-    await market.approveFunds(collateral)
-    trace "calling fillSlot on contract"
-    discard await market.contract.fillSlot(requestId, slotIndex, proof).confirm(1)
-    trace "fillSlot transaction completed"
 
 proc freeSlot*(
     market: OnChainMarket, slotId: SlotId
@@ -327,44 +237,6 @@ proc submitProof*(
 ) {.async: (raises: [CancelledError, MarketError]).} =
   convertEthersError:
     discard await market.contract.submitProof(id, proof).confirm(1)
-
-proc markProofAsMissing*(
-    market: OnChainMarket, id: SlotId, period: Period
-) {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    discard await market.contract.markProofAsMissing(id, period).confirm(1)
-
-proc canProofBeMarkedAsMissing*(
-    market: OnChainMarket, id: SlotId, period: Period
-): Future[bool] {.async: (raises: [CancelledError]).} =
-  let provider = market.contract.provider
-  let contractWithoutSigner = market.contract.connect(provider)
-  let overrides = CallOverrides(blockTag: some BlockTag.pending)
-  try:
-    discard await contractWithoutSigner.markProofAsMissing(id, period, overrides)
-    return true
-  except EthersError as e:
-    trace "Proof cannot be marked as missing", msg = e.msg
-    return false
-
-proc reserveSlot*(
-    market: OnChainMarket, requestId: RequestId, slotIndex: uint64
-) {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    discard await market.contract
-    .reserveSlot(
-      requestId,
-      slotIndex,
-      # reserveSlot runs out of gas for unknown reason, but 100k gas covers it
-      TransactionOverrides(gasLimit: some 100000.u256),
-    )
-    .confirm(1)
-
-proc canReserveSlot*(
-    market: OnChainMarket, requestId: RequestId, slotIndex: uint64
-): Future[bool] {.async: (raises: [CancelledError, MarketError]).} =
-  convertEthersError:
-    return await market.contract.canReserveSlot(requestId, slotIndex)
 
 proc subscribeRequests*(
     market: OnChainMarket, callback: OnRequest
@@ -463,35 +335,6 @@ proc subscribeFulfillment(
 
   convertEthersError:
     let subscription = await market.contract.subscribe(RequestFulfilled, onEvent)
-    return OnChainMarketSubscription(eventSubscription: subscription)
-
-proc subscribeRequestCancelled*(
-    market: OnChainMarket, callback: OnRequestCancelled
-): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestCancelled) {.upraises: [].} =
-    without event =? eventResult, eventErr:
-      error "There was an error in RequestCancelled subscription", msg = eventErr.msg
-      return
-
-    callback(event.requestId)
-
-  convertEthersError:
-    let subscription = await market.contract.subscribe(RequestCancelled, onEvent)
-    return OnChainMarketSubscription(eventSubscription: subscription)
-
-proc subscribeRequestCancelled*(
-    market: OnChainMarket, requestId: RequestId, callback: OnRequestCancelled
-): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
-  proc onEvent(eventResult: ?!RequestCancelled) {.upraises: [].} =
-    without event =? eventResult, eventErr:
-      error "There was an error in RequestCancelled subscription", msg = eventErr.msg
-      return
-
-    if event.requestId == requestId:
-      callback(event.requestId)
-
-  convertEthersError:
-    let subscription = await market.contract.subscribe(RequestCancelled, onEvent)
     return OnChainMarketSubscription(eventSubscription: subscription)
 
 proc subscribeRequestFailed*(
