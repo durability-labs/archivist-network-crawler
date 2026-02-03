@@ -35,7 +35,7 @@ proc fetchRequestInfo(
   try:
     let request = await market.getRequest(rid)
     if r =? request:
-      let price = r.ask.pricePerBytePerSecond.truncate(uint64)
+      let price = r.ask.pricePerBytePerSecond.u256.truncate(uint64)
       return some(
         RequestInfo(
           pending: false,
@@ -58,9 +58,9 @@ method subscribeToNewRequests*(
       raiseAssert("Error result in handling of onNewRequest callback: " & error.msg)
 
   proc onRequest(
-      id: RequestId, ask: StorageAsk, expiry: uint64
-  ) {.gcsafe, upraises: [].} =
-    asyncSpawn resultWrapper(Rid(id))
+      requestId: RequestId, ask: StorageAsk, expiry: StorageTimestamp
+  ) {.raises: [].} =
+    asyncSpawn resultWrapper(Rid(requestId))
 
   if market =? m.market:
     try:
@@ -126,7 +126,7 @@ method awake*(
     without marketplaceAddress =? Address.init(m.state.config.marketplaceAddress):
       return failure("Invalid MarketplaceAddress provided")
 
-    let marketplace = Marketplace.new(marketplaceAddress, provider)
+    let marketplace = MarketplaceContract.new(marketplaceAddress, provider)
     m.market = some(OnChainMarket.new(marketplace))
     return success()
   except JsonRpcProviderError as err:
