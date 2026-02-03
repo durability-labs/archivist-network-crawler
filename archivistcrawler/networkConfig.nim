@@ -93,7 +93,7 @@ proc getVersion(fullModel: NetworkConfig): string =
 
 proc mapToVersion(fullModel: NetworkConfig): ArchivistNetwork =
   let selected = getVersion(fullModel)
-  trace "Mapping to version", version=selected
+  trace "Mapping to version", version = selected
   return ArchivistNetwork(
     spr: fullModel.sprs.filterIt(it.supportedVersions.contains(selected))[0],
     marketplace:
