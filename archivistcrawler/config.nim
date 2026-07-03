@@ -11,7 +11,7 @@ let doc =
 Archivist Network Crawler. Generates network metrics.
 
 Usage:
-  archivistcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--dhtEnable=<e>] [--stepDelay=<ms>] [--revisitDelay=<m>] [--checkDelay=<m>]  [--expiryDelay=<m>] [--marketplaceEnable=<e>] [--ethProvider=<a>] [--marketplaceAddress=<a>] [--requestCheckDelay=<m>]
+  archivistcrawler [--logLevel=<l>] [--publicIp=<a>] [--metricsAddress=<ip>] [--metricsPort=<p>] [--dataDir=<dir>] [--discoveryPort=<p>] [--bootNodes=<n>] [--dhtEnable=<e>] [--stepDelay=<ms>] [--revisitDelay=<m>] [--checkDelay=<m>]  [--expiryDelay=<m>] [--marketplaceEnable=<e>] [--ethProvider=<a>] [--marketplaceAddress=<a>] [--requestCheckDelay=<m>] [--historyRangeSeconds=<s>]
 
 Options:
   --logLevel=<l>                    Sets log level [default: INFO]
@@ -32,6 +32,7 @@ Options:
   --ethProvider=<a>                 Optional override address including http(s) or ws of the eth provider
   --marketplaceAddress=<a>          Optional override Eth address of Archivist contracts deployment
   --requestCheckDelay=<m>           Delay in minutes after which storage contract status is (re)checked [default: 10]
+  --historyRangeSeconds=<s>         Seconds of history to used when starting marketplace metrics. [default: 2592000]
 """
 
 import strutils
@@ -56,6 +57,7 @@ type Config* = ref object
   ethProvider*: string
   marketplaceAddress*: string
   requestCheckDelay*: int
+  historyRangeSeconds*: int
 
 proc `$`*(config: Config): string =
   "Crawler:" & " logLevel=" & config.logLevel & " publicIp=" & config.publicIp &
@@ -66,7 +68,8 @@ proc `$`*(config: Config): string =
     " expiryDelayMins=" & $config.expiryDelayMins & " checkDelayMins=" &
     $config.checkDelayMins & " marketplaceEnable=" & $config.marketplaceEnable &
     " ethProvider=" & config.ethProvider & " marketplaceAddress=" &
-    config.marketplaceAddress & " requestCheckDelay=" & $config.requestCheckDelay
+    config.marketplaceAddress & " requestCheckDelay=" & $config.requestCheckDelay &
+    " historyRangeSeconds=" & $config.historyRangeSeconds
 
 proc stringToSpr(uri: string): SignedPeerRecord =
   var res: SignedPeerRecord
@@ -124,4 +127,5 @@ proc parseConfig*(): Config =
     marketplaceAddress:
       getOrDefault("--marketplaceAddress", networkConfig.marketplace.contractAddress),
     requestCheckDelay: parseInt(get("--requestCheckDelay")),
+    historyRangeSeconds: parseInt(get("--historyRangeSeconds")),
   )

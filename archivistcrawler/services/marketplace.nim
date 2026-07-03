@@ -75,8 +75,7 @@ method iteratePastNewRequestEvents*(
     m: MarketplaceService, onNewRequest: OnNewRequest
 ): Future[?!void] {.async: (raises: []), base.} =
   let
-    oneDay = 60 * 60 * 24
-    timespan = oneDay * 30
+    timespan = m.state.config.historyRangeSeconds
     startTime = m.clock.now() - timespan.uint64
 
   if market =? m.market:
