@@ -17,6 +17,7 @@ EXPIRYDELAY=${CRAWLER_EXPIRYDELAY:-1440}
 
 MARKETPLACEENABLE=${CRAWLER_MARKETPLACEENABLE:-1}
 REQUESTCHECKDELAY=${CRAWLER_REQUESTCHECKDELAY:-10}
+HISTORYRANGESECONDS=${CRAWLER_HISTORYRANGESECONDS:-2592000}
 
 # Marketplace address from URL
 if [[ -n "${MARKETPLACE_ADDRESS_FROM_URL}" ]]; then
@@ -51,7 +52,7 @@ if [[ -n "${CRAWLER_MARKETPLACEADDRESS}" ]]; then
 fi
 
 # Update CLI arguments
-set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --dhtEnable="${DHTENABLE}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}" --marketplaceEnable="${MARKETPLACEENABLE}" --requestCheckDelay="${REQUESTCHECKDELAY}" ${OPTIONALS}
+set -- "$@" --logLevel="${LOGLEVEL}" --publicIp="${PUBLICIP}" --metricsAddress="${METRICSADDRESS}" --metricsPort="${METRICSPORT}" --dataDir="${DATADIR}" --discoveryPort="${DISCPORT}" --dhtEnable="${DHTENABLE}" --stepDelay="${STEPDELAY}" --revisitDelay="${REVISITDELAY}" --expiryDelay="${EXPIRYDELAY}" --checkDelay="${CHECKDELAY}" --marketplaceEnable="${MARKETPLACEENABLE}" --requestCheckDelay="${REQUESTCHECKDELAY}" --historyRangeSeconds="${HISTORYRANGESECONDS}" ${OPTIONALS}
 
 # Show
 echo -e "\nRun parameters:"
