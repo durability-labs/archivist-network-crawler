@@ -60,13 +60,13 @@
 	url = https://github.com/status-im/nim-websock.git
 [submodule "vendor/nim-contract-abi"]
 	path = vendor/nim-contract-abi
-	url = https://github.com/status-im/nim-contract-abi
+	url = https://github.com/durability-labs/nim-contract-abi.git
 [submodule "vendor/nim-json-rpc"]
 	path = vendor/nim-json-rpc
-	url = https://github.com/status-im/nim-json-rpc
+	url = https://github.com/status-im/nim-json-rpc.git
 [submodule "vendor/nim-ethers"]
 	path = vendor/nim-ethers
-	url = https://github.com/status-im/nim-ethers
+	url = https://github.com/durability-labs/nim-ethers.git
 [submodule "vendor/lrucache.nim"]
 	path = vendor/lrucache.nim
 	url = https://github.com/status-im/lrucache.nim
