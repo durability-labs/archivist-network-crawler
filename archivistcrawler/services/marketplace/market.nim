@@ -285,7 +285,6 @@ proc subscribeSlotReservationsFull*(
     market: OnChainMarket, callback: OnSlotReservationsFull
 ): Future[MarketSubscription] {.async: (raises: [CancelledError, MarketError]).} =
   proc onEvent(event: SlotReservationsFull) {.raises: [].} =
-
     callback(event.requestId, event.slotIndex)
 
   convertEthersError:
